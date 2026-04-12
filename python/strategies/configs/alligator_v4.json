@@ -1,0 +1,35 @@
+{
+  "strategy_id": "alligator_v4",
+  "name": "Alligator V4 (Cycle-Aware)",
+  "version": "4.1.0",
+  "type": "long",
+  "pairs": ["BTC/USDT"],
+  "timeframes": ["1h"],
+  "parameters": {
+    "jaw_period":            {"default": 13,    "min": 5,    "max": 30,   "step": 1,     "description": "Jaw SMMA period"},
+    "jaw_shift":             {"default": 8,     "min": 1,    "max": 15,   "step": 1,     "description": "Jaw forward-shift"},
+    "teeth_period":          {"default": 8,     "min": 3,    "max": 20,   "step": 1,     "description": "Teeth SMMA period"},
+    "teeth_shift":           {"default": 5,     "min": 1,    "max": 10,   "step": 1,     "description": "Teeth forward-shift"},
+    "lips_period":           {"default": 5,     "min": 2,    "max": 15,   "step": 1,     "description": "Lips SMMA period"},
+    "lips_shift":            {"default": 3,     "min": 1,    "max": 8,    "step": 1,     "description": "Lips forward-shift"},
+    "htf_multiplier":        {"default": 4,     "min": 2,    "max": 12,   "step": 1,     "description": "Intermediate HTF multiplier (4 = 4h on 1h)"},
+    "macro_htf_multiplier":  {"default": 24,    "min": 12,   "max": 48,   "step": 4,     "description": "Macro HTF multiplier (24 = daily on 1h)"},
+    "adx_threshold":         {"default": 24.0,  "min": 15.0, "max": 35.0, "step": 1.0,   "description": "Min ADX(14) — below = ranging market, skip"},
+    "adx_max":               {"default": 43.0,  "min": 30.0, "max": 80.0, "step": 5.0,   "description": "Max ADX(14) — above = parabolic, skip"},
+    "streak_max":            {"default": 28,    "min": 0,    "max": 80,   "step": 5,     "description": "Max LTF bull alignment streak — above = exhausted"},
+    "min_ltf_spread_pct":    {"default": 0.3,   "min": 0.0,  "max": 1.0,  "step": 0.05,  "description": "Min 1h alligator spread %"},
+    "macro_spread_min":      {"default": 2.0,   "min": 0.0,  "max": 5.0,  "step": 0.25,  "description": "Min daily alligator spread % — weak daily = skip"},
+    "min_prev_body_ratio":   {"default": 0.3,   "min": 0.0,  "max": 0.8,  "step": 0.1,   "description": "Min Bar 1 body ratio"},
+    "min_bounce_pct":        {"default": 0.5,   "min": 0.0,  "max": 1.0,  "step": 0.25,  "description": "Min % Bar 1 close above Teeth (bounce strength)"},
+    "require_body_in_zone":  {"default": 0,     "min": 0,    "max": 1,    "step": 1,     "description": "1 = Bar1 open must be ≤ Teeth (body in zone)"},
+    "sl_buffer_pct":         {"default": 0.001, "min": 0.0,  "max": 0.005,"step": 0.001, "description": "Extra SL buffer below Jaw"},
+    "max_sl_pct":            {"default": 0.03,  "min": 0.01, "max": 0.06, "step": 0.005, "description": "Max SL distance as fraction of entry"}
+  },
+  "risk_rules": {
+    "stop_loss_pct":    null,
+    "take_profit_pct":  null,
+    "max_position_pct": 0.10,
+    "max_leverage":     1.0,
+    "trailing_stop_pct": null
+  }
+}

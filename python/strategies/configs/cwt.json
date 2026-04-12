@@ -1,0 +1,30 @@
+{
+  "strategy_id": "cwt_v1",
+  "name": "CWT",
+  "version": "1.0.0",
+  "type": "spot",
+  "pairs": ["BTC/USDT", "ETH/USDT", "SOL/USDT"],
+  "timeframes": ["1h", "15m"],
+  "parameters": {
+    "jaw_period":                    {"default": 13,    "min": 5,   "max": 30,  "step": 1,     "description": "Jaw SMMA period (classic: 13)"},
+    "jaw_shift":                     {"default": 8,     "min": 1,   "max": 15,  "step": 1,     "description": "Jaw forward-shift in bars (classic: 8)"},
+    "teeth_period":                  {"default": 8,     "min": 3,   "max": 20,  "step": 1,     "description": "Teeth SMMA period (classic: 8)"},
+    "teeth_shift":                   {"default": 5,     "min": 1,   "max": 10,  "step": 1,     "description": "Teeth forward-shift in bars (classic: 5)"},
+    "lips_period":                   {"default": 5,     "min": 2,   "max": 15,  "step": 1,     "description": "Lips SMMA period (classic: 5)"},
+    "lips_shift":                    {"default": 3,     "min": 1,   "max": 8,   "step": 1,     "description": "Lips forward-shift in bars (classic: 3)"},
+    "htf_multiplier":                {"default": 4,     "min": 1,   "max": 16,  "step": 1,     "description": "HTF = LTF x this. 4 on 1H = 4H, 4 on 15m = 1H. Set 1 = single-TF mode."},
+    "sl_buffer_pct":                 {"default": 0.001, "min": 0.0, "max": 0.01,"step": 0.001, "description": "Extra buffer beyond Jaw for SL (0.001 = 0.1%)"},
+    "min_htf_spread_pct":            {"default": 0.3,   "min": 0.0, "max": 1.0, "step": 0.05,  "description": "Minimum HTF alligator spread (lips-jaw)/jaw * 100. 0 = disabled."},
+    "min_prev_body_ratio":           {"default": 0.3,   "min": 0.0, "max": 1.0, "step": 0.05,  "description": "Minimum Bar 1 body ratio |close-open|/(high-low). 0 = disabled."},
+    "min_bounce_pct":                {"default": 0.75,  "min": 0.0, "max": 1.0, "step": 0.05,  "description": "Minimum % Bar 1 close must be above Teeth. 0 = disabled."},
+    "min_ltf_spread_pct":            {"default": 0.2,   "min": 0.0, "max": 1.0, "step": 0.05,  "description": "Minimum LTF alligator spread (lips-jaw)/jaw * 100. 0 = disabled."},
+    "require_bar2_above_prev_close": {"default": 0,     "min": 0,   "max": 1,   "step": 1,     "description": "1 = Bar 2 must close above Bar 1 close. 0 = disabled."}
+  },
+  "risk_rules": {
+    "stop_loss_pct":    null,
+    "take_profit_pct":  null,
+    "max_position_pct": 0.10,
+    "max_leverage":     1.0,
+    "trailing_stop_pct": null
+  }
+}
