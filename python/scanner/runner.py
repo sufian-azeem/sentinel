@@ -247,7 +247,7 @@ def _scan_pair_incremental(
                 print(f"  [{ticker.pair}] MEXC fallback also failed for {tf}: {e2}")
                 candles[tf] = None
                 candle_exchange[tf] = tf_exchange
-        _time.sleep(0.5)
+        _time.sleep(0.1)  # incremental: small window, no need for long delay
 
     all_results: list[dict] = []
     for tf in SCAN_TFS:

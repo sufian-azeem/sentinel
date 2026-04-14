@@ -5,29 +5,22 @@
     </div>
 
     {{-- ── Active Monitoring ────────────────────────────────────────────── --}}
-    @if(isset($activeRuns) && $activeRuns->isNotEmpty())
+    @if(!empty($monitoringData))
     <div class="mb-6 space-y-4">
         <div class="text-[10px] font-semibold text-gray-600 uppercase tracking-widest">Active Monitoring</div>
 
-        @foreach($activeRuns as $run)
-        @php
-            $exchange = $run->filters_json['exchange'] ?? '—';
-            $expiresAt = $run->started_at->addHours(24);
-            $expiresLabel = $expiresAt->isPast() ? 'expired' : 'expires ' . $expiresAt->diffForHumans();
-            $qualifiedResults = $run->screenerResults;
-        @endphp
+        @foreach($monitoringData as $run)
         <div class="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden">
             {{-- Run header --}}
             <div class="px-4 py-2.5 border-b border-gray-800 flex items-center gap-2 text-xs">
-                <span class="text-gray-300 font-semibold">Run #{{ $run->id }}</span>
-                <x-exchange-badge :exchange="$exchange" />
-                <x-run-status :status="$run->status" />
-                <span class="text-gray-700 ml-1">{{ $expiresLabel }}</span>
-                <span class="text-gray-700 ml-auto">{{ $qualifiedResults->count() }} pairs</span>
+                <span class="text-gray-300 font-semibold">Run #{{ $run['id'] }}</span>
+                <x-exchange-badge :exchange="$run['exchange']" />
+                <span class="text-gray-700 ml-1">{{ $run['expiresLabel'] }}</span>
+                <span class="text-gray-700 ml-auto">{{ count($run['pairs']) }} pairs</span>
             </div>
 
             {{-- Pair × TF grid --}}
-            @if($qualifiedResults->isNotEmpty())
+            @if(!empty($run['pairs']))
             <table class="w-full text-xs">
                 <thead>
                     <tr class="text-gray-600 border-b border-gray-800/60">
@@ -39,25 +32,19 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($qualifiedResults as $result)
-                    @php
-                        $scansByTf = $result->signalScans->groupBy('timeframe');
-                    @endphp
+                    @foreach($run['pairs'] as $result)
                     <tr class="border-b border-gray-800/30 last:border-0 hover:bg-gray-800/20">
-                        <td class="px-4 py-2 font-semibold text-gray-200">{{ $result->pair }}</td>
+                        <td class="px-4 py-2 font-semibold text-gray-200">{{ $result['pair'] }}</td>
                         @foreach(['15M', '1H', '4H'] as $tf)
-                        @php
-                            $scan = ($scansByTf[$tf] ?? collect())->first();
-                            $signal = $scan?->signals->first();
-                        @endphp
+                        @php $tfData = $result['tfs'][$tf]; @endphp
                         <td class="text-center px-2 py-2">
-                            @if($signal && $signal->status === 'active')
+                            @if($tfData['signal'])
                                 <span class="inline-block bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 px-1.5 py-px rounded text-[10px] font-medium">signal</span>
-                            @elseif($scan && $scan->status === 'scanned')
+                            @elseif($tfData['status'] === 'scanned')
                                 <span class="text-gray-600 text-[10px]">no setup</span>
-                            @elseif($scan && $scan->status === 'error')
+                            @elseif($tfData['status'] === 'error')
                                 <span class="inline-block bg-red-500/10 text-red-400 border border-red-500/20 px-1.5 py-px rounded text-[10px]">error</span>
-                            @elseif($scan && $scan->status === 'skipped')
+                            @elseif($tfData['status'] === 'skipped')
                                 <span class="text-yellow-500/70 text-[10px]">skipped</span>
                             @else
                                 <span class="text-gray-800 text-[10px]">—</span>
@@ -65,7 +52,7 @@
                         </td>
                         @endforeach
                         <td class="text-right px-4 py-2">
-                            <a href="{{ route('scans.index', ['run' => $run->id, 'pair' => $result->pair]) }}"
+                            <a href="{{ route('scans.index', ['run' => $run['id'], 'pair' => $result['pair']]) }}"
                                class="text-[10px] text-gray-700 hover:text-emerald-400 transition-colors">details →</a>
                         </td>
                     </tr>

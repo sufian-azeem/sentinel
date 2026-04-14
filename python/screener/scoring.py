@@ -85,6 +85,8 @@ def filter_and_score(
             continue
         if any(s in base for s in _skip_contains):
             continue
+        if base and base[0].isdigit():
+            continue  # futures multiplier prefix e.g. 1000PEPE, 1000SHIB
         if not (sym.endswith("USDT") or sym.endswith("USDC")):
             continue
 

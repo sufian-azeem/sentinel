@@ -103,6 +103,8 @@ class Signal(BaseModel):
     sl_price:  Optional[float] = None   # strategy-defined SL price
     tp1_price: Optional[float] = None   # TP1 price (partial close 50%)
     tp2_price: Optional[float] = None   # TP2 price (close remaining 100%)
+    entry_type: Optional[str] = None    # "Pullback" or "Awakening" (set on BUY signals)
+    conditions: dict = {}               # per-condition pass/fail breakdown + indicator values
 
 
 class Order(BaseModel):

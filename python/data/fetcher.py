@@ -81,6 +81,9 @@ def fetch_candles(
 
                 time.sleep(0.2)
             break
+        except (ccxt.BadSymbol, ccxt.NotSupported) as e:
+            # Symbol doesn't exist on this exchange — retrying won't help
+            raise RuntimeError(f"Failed to fetch candles after 5 attempts: {e}")
         except Exception as e:
             is_rate_limit = "429" in str(e) or "Too Many Requests" in str(e) or isinstance(e, ccxt.RateLimitExceeded)
             if attempt < 4:

@@ -18,6 +18,7 @@ Route::get('/signals/{signal}', [SignalController::class, 'show'])->name('signal
 Route::post('/signals/{signal}/close', [SignalController::class, 'closeManually'])->name('signals.close');
 
 Route::get('/scans', [ScanController::class, 'index'])->name('scans.index');
+Route::delete('/scans/pairs/{screenerResult}', [ScanController::class, 'removePair'])->name('scans.pairs.remove');
 
 Route::get('/run', [RunController::class, 'index'])->name('run.index');
 Route::post('/run', [RunController::class, 'store'])->name('run.store');

@@ -132,6 +132,9 @@ class CWTStrategy(BaseStrategy):
             return Signal(action=SignalAction.HOLD, strength=0.0, reason="Alligator NaN")
 
         close = float(row["close"])
+        open_ = float(row.get("open", 0) or 0)
+        high  = float(row.get("high", 0) or 0)
+        low   = float(row.get("low",  0) or 0)
 
         if position is not None:
             return Signal(action=SignalAction.HOLD, strength=0.0, reason="Holding position")
@@ -144,8 +147,14 @@ class CWTStrategy(BaseStrategy):
             float(row.get("htf_teeth_off", 0) or 0),
             float(row.get("htf_lips_off",  0) or 0),
         )
+        htf_jaw   = float(row.get("htf_jaw",   0) or 0)
+        htf_teeth = float(row.get("htf_teeth", 0) or 0)
+        htf_lips  = float(row.get("htf_lips",  0) or 0)
+
         # Single-TF mode (htf_multiplier=1): no HTF columns — treat as bullish
         htf_bullish = Alligator.is_bullish(htf) if htf.jaw else True
+        htf_spread  = float(row.get("htf_spread_pct", 0.0) or 0.0)
+        ltf_spread  = float(row.get("ltf_spread_pct", 0.0) or 0.0)
 
         # ── Build HA candle objects ───────────────────────────────────────────
         bar1 = Candle(
@@ -164,78 +173,148 @@ class CWTStrategy(BaseStrategy):
         alignment_streak = int(row.get("alignment_streak", 0) or 0)
         prev_close       = float(row.get("prev_close", 0.0))
 
+        # ── Evaluate each condition individually ──────────────────────────────
+        c_htf_bullish      = htf_bullish
+        c_ltf_bullish      = Alligator.is_bullish(ltf)
+        c_bar1_touching    = Alligator.is_candle_touching(bar1, disp)
+        c_bar1_above       = Alligator.is_candle_above(bar1, disp)
+        c_bar1_touch_above = c_bar1_touching or c_bar1_above
+        c_bar2_above       = Alligator.is_candle_above(bar2, disp)
+        c_body_expand      = bar2.body > bar1.body
+        c_bar1_ha_green    = bar1.close > bar1.open
+        c_bar2_ha_green    = bar2.close > bar2.open
+        c_streak_2_8       = 2 <= alignment_streak <= 8
+        c_lips_cross_teeth = Alligator.lips_crossed_teeth(disp)
+
         # ── Entry Type 1: Pullback ────────────────────────────────────────────
-        # Bar1: dipped into zone, closed back above lips
-        # Bar2: fully above lips with expanding body
         pullback = (
-            htf_bullish
-            and Alligator.is_bullish(ltf)
-            and Alligator.is_candle_touching(bar1, disp)
-            and Alligator.is_candle_above(bar2, disp)
-            and bar2.body > bar1.body
+            c_htf_bullish
+            and c_ltf_bullish
+            and c_bar1_touching
+            and c_bar2_above
+            and c_body_expand
         )
 
         # ── Entry Type 2: Awakening ───────────────────────────────────────────
-        # Alligator woke up (streak 2–8), lips crossed teeth,
-        # both HA bars green and above lips, bar2 fully clear
         awakening = (
-            htf_bullish
-            and 2 <= alignment_streak <= 8
-            and Alligator.lips_crossed_teeth(disp)
-            and (Alligator.is_candle_touching(bar1, disp) or Alligator.is_candle_above(bar1, disp))
-            and Alligator.is_candle_above(bar2, disp)
-            and bar2.close > bar2.open
-            and bar1.close > bar1.open
+            c_htf_bullish
+            and c_streak_2_8
+            and c_lips_cross_teeth
+            and c_bar1_touch_above
+            and c_bar2_above
+            and c_bar2_ha_green
+            and c_bar1_ha_green
         )
 
-        if pullback or awakening:
-            sl_price = float(jaw) * (1.0 - float(self.params["sl_buffer_pct"]))
-            sl_dist  = close - sl_price
-            if sl_dist <= 0:
-                return Signal(action=SignalAction.HOLD, strength=0.0, reason="SL distance ≤ 0")
+        # ── SL calculation ────────────────────────────────────────────────────
+        sl_price    = float(jaw) * (1.0 - float(self.params["sl_buffer_pct"]))
+        sl_dist     = close - sl_price
+        sl_dist_pct = (sl_dist / close * 100) if close > 0 else 0.0
+        c_sl_ok     = sl_dist > 0
 
-            min_htf_spread = float(self.params["min_htf_spread_pct"])
-            if min_htf_spread > 0:
-                htf_spread_pct = float(row.get("htf_spread_pct", 0.0) or 0.0)
-                if htf_spread_pct < min_htf_spread:
-                    return Signal(action=SignalAction.HOLD, strength=0.0,
-                                  reason=f"HTF spread {htf_spread_pct:.3f}% < min {min_htf_spread:.2f}%")
+        # ── Build conditions dict (single source of truth for UI display) ─────
+        conditions = {
+            "candle": {
+                "open": round(open_, 8), "high": round(high, 8),
+                "low": round(low, 8),    "close": round(close, 8),
+            },
+            "ltf": {
+                "jaw":        round(disp.jaw,   8), "teeth":      round(disp.teeth,   8), "lips":      round(disp.lips,   8),
+                "jaw_off":    round(ltf.jaw,    8), "teeth_off":  round(ltf.teeth,    8), "lips_off":  round(ltf.lips,   8),
+                "spread_pct": round(ltf_spread, 4),
+            },
+            "htf": {
+                "jaw":        round(htf_jaw,    8), "teeth":      round(htf_teeth,    8), "lips":      round(htf_lips,   8),
+                "jaw_off":    round(htf.jaw,    8), "teeth_off":  round(htf.teeth,    8), "lips_off":  round(htf.lips,   8),
+                "spread_pct": round(htf_spread, 4),
+            },
+            "ha_bar1": {
+                "open": round(bar1.open, 8), "high": round(bar1.high, 8),
+                "low":  round(bar1.low if bar1.low != float("inf") else 0, 8),
+                "close": round(bar1.close, 8), "body": round(bar1.body, 8),
+            },
+            "ha_bar2": {
+                "open": round(bar2.open, 8), "high": round(bar2.high, 8),
+                "low":  round(bar2.low,  8), "close": round(bar2.close, 8), "body": round(bar2.body, 8),
+            },
+            "alignment_streak": alignment_streak,
+            "sl_dist_pct":      round(sl_dist_pct, 4),
+            "pullback": {
+                "htf_bullish":   {"pass": c_htf_bullish},
+                "ltf_bullish":   {"pass": c_ltf_bullish},
+                "bar1_touching": {"pass": c_bar1_touching},
+                "bar2_above":    {"pass": c_bar2_above},
+                "body_expand":   {"pass": c_body_expand},
+                "sl_ok":         {"pass": c_sl_ok, "sl_dist_pct": round(sl_dist_pct, 4)},
+            },
+            "awakening": {
+                "htf_bullish":         {"pass": c_htf_bullish},
+                "streak_2_8":          {"pass": c_streak_2_8, "value": alignment_streak},
+                "lips_crossed_teeth":  {"pass": c_lips_cross_teeth},
+                "bar1_touching_above": {"pass": c_bar1_touch_above},
+                "bar1_ha_green":       {"pass": c_bar1_ha_green},
+                "bar2_above":          {"pass": c_bar2_above},
+                "bar2_ha_green":       {"pass": c_bar2_ha_green},
+                "sl_ok":               {"pass": c_sl_ok, "sl_dist_pct": round(sl_dist_pct, 4)},
+            },
+        }
 
-            min_prev_body_ratio = float(self.params["min_prev_body_ratio"])
-            if min_prev_body_ratio > 0:
-                prev_body_ratio = float(row.get("prev_body_ratio", 1.0) or 1.0)
-                if prev_body_ratio < min_prev_body_ratio:
-                    return Signal(action=SignalAction.HOLD, strength=0.0,
-                                  reason=f"Bar1 body ratio {prev_body_ratio:.3f} < {min_prev_body_ratio:.2f}")
-
-            min_bounce_pct = float(self.params["min_bounce_pct"])
-            if min_bounce_pct > 0:
-                prev_close_vs_teeth = float(row.get("prev_close_vs_teeth_pct", 0.0) or 0.0)
-                if prev_close_vs_teeth < min_bounce_pct:
-                    return Signal(action=SignalAction.HOLD, strength=0.0,
-                                  reason=f"Bounce {prev_close_vs_teeth:.3f}% < min {min_bounce_pct:.2f}%")
-
-            min_ltf_spread = float(self.params["min_ltf_spread_pct"])
-            if min_ltf_spread > 0:
-                ltf_spread_pct = float(row.get("ltf_spread_pct", 0.0) or 0.0)
-                if ltf_spread_pct < min_ltf_spread:
-                    return Signal(action=SignalAction.HOLD, strength=0.0,
-                                  reason=f"LTF spread {ltf_spread_pct:.3f}% < min {min_ltf_spread:.2f}%")
-
-            if int(self.params["require_bar2_above_prev_close"]) and close <= prev_close:
-                return Signal(action=SignalAction.HOLD, strength=0.0,
-                              reason=f"Bar2 close {close:.2f} ≤ Bar1 close {prev_close:.2f}")
-
-            entry_type = "Awakening" if awakening else "Pullback"
-            tp1_price  = close + sl_dist
-            tp2_price  = close + sl_dist * 2
+        # ── Determine entry type ──────────────────────────────────────────────
+        if pullback and c_sl_ok:
+            entry_type = "Pullback"
+        elif awakening and c_sl_ok:
+            entry_type = "Awakening"
+        else:
             return Signal(
-                action=SignalAction.BUY,
-                strength=1.0,
-                sl_price=sl_price,
-                tp1_price=tp1_price,
-                tp2_price=tp2_price,
-                reason=f"CWT {entry_type} | entry={close:.4f}  SL={sl_price:.4f}  TP1={tp1_price:.4f}  TP2={tp2_price:.4f}",
+                action=SignalAction.HOLD,
+                strength=0.0,
+                reason="No setup",
+                conditions=conditions,
             )
 
-        return Signal(action=SignalAction.HOLD, strength=0.0, reason="No setup")
+        # ── Optional filters (post-pattern) ──────────────────────────────────
+        min_htf_spread = float(self.params["min_htf_spread_pct"])
+        if min_htf_spread > 0 and htf_spread < min_htf_spread:
+            return Signal(action=SignalAction.HOLD, strength=0.0,
+                          reason=f"HTF spread {htf_spread:.3f}% < min {min_htf_spread:.2f}%",
+                          conditions=conditions)
+
+        min_prev_body_ratio = float(self.params["min_prev_body_ratio"])
+        if min_prev_body_ratio > 0:
+            prev_body_ratio = float(row.get("prev_body_ratio", 1.0) or 1.0)
+            if prev_body_ratio < min_prev_body_ratio:
+                return Signal(action=SignalAction.HOLD, strength=0.0,
+                              reason=f"Bar1 body ratio {prev_body_ratio:.3f} < {min_prev_body_ratio:.2f}",
+                              conditions=conditions)
+
+        min_bounce_pct = float(self.params["min_bounce_pct"])
+        if min_bounce_pct > 0:
+            prev_close_vs_teeth = float(row.get("prev_close_vs_teeth_pct", 0.0) or 0.0)
+            if prev_close_vs_teeth < min_bounce_pct:
+                return Signal(action=SignalAction.HOLD, strength=0.0,
+                              reason=f"Bounce {prev_close_vs_teeth:.3f}% < min {min_bounce_pct:.2f}%",
+                              conditions=conditions)
+
+        min_ltf_spread = float(self.params["min_ltf_spread_pct"])
+        if min_ltf_spread > 0 and ltf_spread < min_ltf_spread:
+            return Signal(action=SignalAction.HOLD, strength=0.0,
+                          reason=f"LTF spread {ltf_spread:.3f}% < min {min_ltf_spread:.2f}%",
+                          conditions=conditions)
+
+        if int(self.params["require_bar2_above_prev_close"]) and close <= prev_close:
+            return Signal(action=SignalAction.HOLD, strength=0.0,
+                          reason=f"Bar2 close {close:.2f} ≤ Bar1 close {prev_close:.2f}",
+                          conditions=conditions)
+
+        tp1_price = close + sl_dist
+        tp2_price = close + sl_dist * 2
+        return Signal(
+            action=SignalAction.BUY,
+            strength=1.0,
+            entry_type=entry_type,
+            sl_price=sl_price,
+            tp1_price=tp1_price,
+            tp2_price=tp2_price,
+            reason=f"CWT {entry_type} | entry={close:.4f}  SL={sl_price:.4f}  TP1={tp1_price:.4f}  TP2={tp2_price:.4f}",
+            conditions=conditions,
+        )

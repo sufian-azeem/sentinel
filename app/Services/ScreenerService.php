@@ -52,15 +52,15 @@ class ScreenerService
             $run = ScreenerRun::create([
                 'data_source' => $dataSource,
                 'filters_json' => [
-                    'exchange'        => $exchange,
-                    'min_change'      => $minChangePct,
-                    'min_volume'      => $minVolume,
-                    'min_rvol'        => $minRvol,
-                    'max_corr'        => $maxBtcCorr,
+                    'exchange' => $exchange,
+                    'min_change' => $minChangePct,
+                    'min_volume' => $minVolume,
+                    'min_rvol' => $minRvol,
+                    'max_corr' => $maxBtcCorr,
                     'min_bullish_tfs' => $minBullishTfs,
-                    'top_n'           => $topN,
+                    'top_n' => $topN,
                 ],
-                'status'     => 'running',
+                'status' => 'running',
                 'started_at' => now(),
             ]);
 
@@ -88,10 +88,10 @@ class ScreenerService
             $totalMatched = count(array_filter($results, fn (array $r) => $r['qualified']));
 
             $run->update([
-                'status'        => 'completed',
+                'status' => 'completed',
                 'total_scanned' => count($results),
                 'total_matched' => $totalMatched,
-                'finished_at'   => now(),
+                'finished_at' => now(),
             ]);
 
             return $run->fresh();
@@ -126,6 +126,9 @@ class ScreenerService
         if (str_contains($rawSym, ':')) {
             return null;
         }
+        if (preg_match('/^\d/', $base)) {
+            return null; // futures multiplier prefix e.g. 1000PEPE, 1000SHIB
+        }
         foreach (self::SKIP_CONTAINS as $skip) {
             if (str_contains($base, $skip)) {
                 return null;
@@ -156,9 +159,9 @@ class ScreenerService
                 'change_pct' => $chg,
                 'volume_usd' => $vol,
                 'volatility' => $vola,
-                'vdelta'     => $vd,
-                'btc_corr'   => $corr,
-                'bullish'    => $bullish,
+                'vdelta' => $vd,
+                'btc_corr' => $corr,
+                'bullish' => $bullish,
             ];
         }
 
@@ -168,9 +171,9 @@ class ScreenerService
         $bullishCount = count($bullishLabels);
 
         $filters = [
-            'volume_1h'   => ['value' => round($vol1h, 2),  'threshold' => $minVolume,     'pass' => $vol1h >= $minVolume],
-            'rvol_15m'    => ['value' => round($rvol, 4),   'threshold' => $minRvol,        'pass' => $rvol >= $minRvol],
-            'btc_corr'    => ['value' => round($corr1h, 4), 'threshold' => $maxBtcCorr,     'pass' => $corr1h <= $maxBtcCorr],
+            'volume_1h' => ['value' => round($vol1h, 2),  'threshold' => $minVolume,     'pass' => $vol1h >= $minVolume],
+            'rvol_15m' => ['value' => round($rvol, 4),   'threshold' => $minRvol,        'pass' => $rvol >= $minRvol],
+            'btc_corr' => ['value' => round($corr1h, 4), 'threshold' => $maxBtcCorr,     'pass' => $corr1h <= $maxBtcCorr],
             'bullish_tfs' => ['value' => $bullishCount,     'threshold' => $minBullishTfs,  'pass' => $bullishCount >= $minBullishTfs],
         ];
 
@@ -218,18 +221,18 @@ class ScreenerService
             : substr($sym, 0, -4).'/USDC';
 
         return [
-            'symbol'            => $sym,
-            'pair'              => $pair,
-            'price'             => $price,
-            'rvol'              => $rvol,
-            'score'             => $score,
-            'alligator_tf'      => $alligatorTf,
-            'bullish_count'     => $bullishCount,
-            'confluence'        => $confluence,
-            'qualified'         => $qualified,
+            'symbol' => $sym,
+            'pair' => $pair,
+            'price' => $price,
+            'rvol' => $rvol,
+            'score' => $score,
+            'alligator_tf' => $alligatorTf,
+            'bullish_count' => $bullishCount,
+            'confluence' => $confluence,
+            'qualified' => $qualified,
             'disqualify_reason' => $disqualifyReason ?: null,
-            'tf_data_json'      => $snapshots,
-            'filters_json'      => $filters,
+            'tf_data_json' => $snapshots,
+            'filters_json' => $filters,
         ];
     }
 
