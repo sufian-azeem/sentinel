@@ -213,11 +213,11 @@
             <div class="px-4 py-3 grid grid-cols-1 md:grid-cols-2 gap-4">
 
                 {{-- Pullback Conditions --}}
-                @if(isset($candle['conditions']['pullback']))
+                @if(isset($candle['pullback']))
                 <div>
                     <div class="text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wider">Pullback</div>
                     <div class="space-y-1">
-                        @foreach($candle['conditions']['pullback'] as $name => $cond)
+                        @foreach($candle['pullback'] as $name => $cond)
                         <div class="flex items-center gap-2 text-xs">
                             <span class="w-4 h-4 rounded flex items-center justify-center text-xs font-bold
                                 {{ $cond['pass'] ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400' }}">
@@ -234,11 +234,11 @@
                 @endif
 
                 {{-- Awakening Conditions --}}
-                @if(isset($candle['conditions']['awakening']))
+                @if(isset($candle['awakening']))
                 <div>
                     <div class="text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wider">Awakening</div>
                     <div class="space-y-1">
-                        @foreach($candle['conditions']['awakening'] as $name => $cond)
+                        @foreach($candle['awakening'] as $name => $cond)
                         <div class="flex items-center gap-2 text-xs">
                             <span class="w-4 h-4 rounded flex items-center justify-center text-xs font-bold
                                 {{ $cond['pass'] ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400' }}">

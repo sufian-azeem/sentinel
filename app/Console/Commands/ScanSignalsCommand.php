@@ -10,8 +10,6 @@ use Illuminate\Support\Facades\DB;
 
 class ScanSignalsCommand extends Command
 {
-    private const int EXPIRY_HOURS = 24;
-
     protected $signature = 'trading:scan-signals {--run= : Scan a specific run ID (ignores expiry)}';
 
     protected $description = 'Progressively scan qualified pairs for signals across all active (non-expired) screener runs';
@@ -21,12 +19,13 @@ class ScanSignalsCommand extends Command
         $lookback = 1;
 
         if ($runId = $this->option('run')) {
-            $runs = ScreenerRun::where('id', $runId)->where('status', 'completed')->get();
+            $runs = ScreenerRun::completed()->where('id', $runId)->get();
         } else {
-            $cutoff = now()->subHours(self::EXPIRY_HOURS);
-            $runs = ScreenerRun::where('status', 'completed')
-                ->where('started_at', '>=', $cutoff)
-                ->get();
+            ScreenerRun::where('status', 'completed')
+                ->where('started_at', '<', now()->subHours(ScreenerRun::EXPIRY_HOURS))
+                ->update(['status' => 'expired']);
+
+            $runs = ScreenerRun::completed()->get();
         }
 
         if ($runs->isEmpty()) {

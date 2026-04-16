@@ -17,7 +17,7 @@ return new class extends Migration
             $table->integer('total_scanned')->default(0);
             $table->integer('total_matched')->default(0);
             $table->json('filters_json');
-            $table->enum('status', ['running', 'completed', 'failed'])->default('running');
+            $table->enum('status', ['running', 'completed', 'failed', 'expired'])->default('running');
             $table->text('error_message')->nullable();
             $table->dateTime('started_at');
             $table->dateTime('finished_at')->nullable();

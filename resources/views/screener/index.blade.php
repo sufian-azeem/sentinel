@@ -32,14 +32,46 @@
     {{-- Qualified Pairs --}}
     @php $qualified = $results->where('qualified', true); @endphp
     @if($qualified->isNotEmpty())
-    <div class="bg-gray-900 border border-gray-800 rounded-lg mb-6">
-        <div class="px-4 py-3 border-b border-gray-800">
+    <script>
+    window._fav = {
+        url: '{{ url('screener/favorites') }}',
+        csrf: '{{ csrf_token() }}',
+        initial: @json(array_keys($favorites)),
+    };
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('screenerFav', () => ({
+            favorites: window._fav.initial,
+            favOnly: false,
+            async toggle(pair) {
+                const r = await fetch(window._fav.url + '/' + encodeURIComponent(pair), {
+                    method: 'POST',
+                    headers: { 'X-CSRF-TOKEN': window._fav.csrf, 'Accept': 'application/json' },
+                });
+                const d = await r.json();
+                this.favorites = d.favorited
+                    ? [...this.favorites, pair]
+                    : this.favorites.filter(p => p !== pair);
+            },
+            isFav(pair) { return this.favorites.includes(pair); },
+        }));
+    });
+    </script>
+
+    <div class="bg-gray-900 border border-gray-800 rounded-lg mb-6" x-data="screenerFav()">
+        <div class="px-4 py-3 border-b border-gray-800 flex items-center justify-between">
             <h2 class="text-sm font-semibold text-emerald-400">✓ Qualified Pairs ({{ $qualified->count() }})</h2>
+            <button @click="favOnly = !favOnly"
+                    :class="favOnly ? 'text-yellow-400 border-yellow-500/40 bg-yellow-500/10' : 'text-gray-600 border-gray-700 hover:text-gray-400'"
+                    class="flex items-center gap-1 border rounded px-2 py-1 text-[10px] transition-colors">
+                <span>★</span>
+                <span x-text="favOnly ? 'Favorites' : 'All'"></span>
+            </button>
         </div>
         <div class="overflow-x-auto">
         <table class="w-full text-xs">
             <thead>
                 <tr class="text-gray-600 border-b border-gray-800">
+                    <th class="text-left px-4 py-2 w-8"></th>
                     <th class="text-left px-4 py-2">#</th>
                     <th class="text-left px-4 py-2">Pair</th>
                     <th class="text-right px-4 py-2">Price</th>
@@ -52,7 +84,15 @@
             </thead>
             <tbody>
                 @foreach($qualified as $i => $r)
-                <tr class="border-b border-gray-800/50 hover:bg-gray-800/30">
+                <tr x-show="!favOnly || isFav('{{ $r->pair }}')"
+                    :class="isFav('{{ $r->pair }}') ? 'border-b border-gray-800/50 bg-yellow-500/[0.03] hover:bg-yellow-500/[0.06]' : 'border-b border-gray-800/50 hover:bg-gray-800/30'">
+                    <td class="px-4 py-2">
+                        <button @click="toggle('{{ $r->pair }}')" type="button"
+                                :class="isFav('{{ $r->pair }}') ? 'text-yellow-400' : 'text-gray-700 hover:text-gray-500'"
+                                class="transition-colors leading-none text-sm">
+                            <span x-text="isFav('{{ $r->pair }}') ? '★' : '☆'">☆</span>
+                        </button>
+                    </td>
                     <td class="px-4 py-2 text-gray-600">{{ $i + 1 }}</td>
                     <td class="px-4 py-2 font-semibold">
                         @php

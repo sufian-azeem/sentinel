@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ScreenerRun extends Model
 {
+    public const int EXPIRY_HOURS = 24;
+
     public $timestamps = false;
 
     protected $fillable = [
@@ -26,6 +28,11 @@ class ScreenerRun extends Model
         'finished_at' => 'datetime',
         'created_at' => 'datetime',
     ];
+
+    public function scopeCompleted($query): void
+    {
+        $query->where('status', 'completed');
+    }
 
     public function screenerResults(): HasMany
     {

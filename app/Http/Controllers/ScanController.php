@@ -10,14 +10,9 @@ use Illuminate\Http\Request;
 
 class ScanController extends Controller
 {
-    private const int EXPIRY_HOURS = 24;
-
     public function index(Request $request)
     {
-        $cutoff = now()->subHours(self::EXPIRY_HOURS);
-
-        $activeRuns = ScreenerRun::where('status', 'completed')
-            ->where('started_at', '>=', $cutoff)
+        $activeRuns = ScreenerRun::completed()
             ->latest('id')
             ->with(['screenerResults' => fn ($q) => $q
                 ->where('qualified', true)
@@ -43,19 +38,19 @@ class ScanController extends Controller
                 ->orderByDesc('screener_results.score')
                 ->select('signal_scans.*');
         } else {
-            $query->latest('signal_scans.id');
+            $query->whereHas('screenerRun', fn ($q) => $q->completed())
+                ->latest('signal_scans.id');
         }
 
         $scans = $query->paginate(25)->withQueryString();
 
         $monitoringData = $activeRuns->map(function (ScreenerRun $run) {
             $exchange = $run->filters_json['exchange'] ?? '—';
-            $expiresAt = $run->started_at->addHours(self::EXPIRY_HOURS);
 
             return [
                 'id' => $run->id,
                 'exchange' => $exchange,
-                'expiresLabel' => $expiresAt->isPast() ? 'expired' : 'expires '.$expiresAt->diffForHumans(),
+                'expiresLabel' => 'expires '.$run->started_at->addHours(ScreenerRun::EXPIRY_HOURS)->diffForHumans(),
                 'pairs' => $run->screenerResults->map(function (ScreenerResult $result) {
                     $scansByTf = $result->signalScans->groupBy('timeframe');
 

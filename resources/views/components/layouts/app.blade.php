@@ -6,6 +6,7 @@
     <title>{{ $title ?? 'Crypto Signals' }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>[x-cloak]{display:none!important}</style>
     @if(isset($autoRefresh))
     <meta http-equiv="refresh" content="60">
     @endif

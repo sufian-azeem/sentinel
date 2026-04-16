@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\FavoritePair;
 use App\Models\ScreenerResult;
 use App\Models\ScreenerRun;
 
@@ -9,11 +10,12 @@ class ScreenerController extends Controller
 {
     public function index()
     {
-        $run = ScreenerRun::where('status', 'completed')->latest('id')->first();
+        $run = ScreenerRun::completed()->latest('id')->first();
 
         return view('screener.index', [
             'run' => $run,
             'results' => $run ? $this->loadResults($run->id) : collect(),
+            'favorites' => $this->favoritesMap(),
         ]);
     }
 
@@ -22,6 +24,7 @@ class ScreenerController extends Controller
         return view('screener.index', [
             'run' => $screenerRun,
             'results' => $this->loadResults($screenerRun->id),
+            'favorites' => $this->favoritesMap(),
         ]);
     }
 
@@ -30,6 +33,11 @@ class ScreenerController extends Controller
         $runs = ScreenerRun::latest('id')->paginate(20);
 
         return view('screener.history', compact('runs'));
+    }
+
+    private function favoritesMap(): array
+    {
+        return FavoritePair::pluck('pair')->flip()->all();
     }
 
     private function loadResults(int $runId)
