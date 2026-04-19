@@ -14,6 +14,10 @@ class NotifyHealthCheckFailed
             return;
         }
 
+        if (! config('services.discord.health_alerts', true)) {
+            return;
+        }
+
         $webhookUrl = config('services.discord.webhook_url');
 
         if (! $webhookUrl) {

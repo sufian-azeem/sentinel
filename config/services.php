@@ -37,6 +37,7 @@ return [
 
     'discord' => [
         'webhook_url' => env('DISCORD_WEBHOOK_URL'),
+        'health_alerts' => env('DISCORD_HEALTH_ALERTS', true),
     ],
 
 ];
