@@ -102,7 +102,7 @@
                             $tvExchange = $usedMexc ? 'MEXC' : 'BINANCE';
                             $pairUrl = $exchange === 'hyperliquid'
                                 ? 'https://app.hyperliquid.xyz/trade/'.$baseAsset
-                                : 'https://www.tradingview.com/chart/?symbol='.$tvExchange.':'.str_replace('/', '', $r->pair);
+                                : 'https://www.tradingview.com/chart/?symbol='.$tvExchange.':'.str_replace('/', '', $r->pair).'&interval=60';
                         @endphp
                         <a href="{{ $pairUrl }}" target="_blank" class="text-white hover:text-emerald-400">{{ $r->pair }}</a>
                     </td>
