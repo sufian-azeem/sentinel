@@ -182,7 +182,7 @@ def load_qualified_pairs(screener_run_id: int, top_n: int) -> list[dict]:
             rows = cur.fetchall()
         return [
             {
-                "screener_result_id": row[0],
+                "screener_pair_id": row[0],
                 "pair":              row[1],
                 "alligator_tf":      row[2],
                 "price":             float(row[3]),
@@ -213,7 +213,7 @@ def load_pair_by_result_id(result_id: int) -> dict | None:
         if not row:
             return None
         return {
-            "screener_result_id": row[0],
+            "screener_pair_id": row[0],
             "screener_run_id":    row[1],
             "pair":               row[2],
             "alligator_tf":       row[3],
@@ -257,7 +257,7 @@ def create_signal_scan(
             cur.execute(
                 """
                 INSERT INTO pair_scans
-                    (screener_run_id, screener_result_id, pair, timeframe,
+                    (screener_run_id, screener_pair_id, pair, timeframe,
                      exchange, strategy, status, created_at)
                 VALUES (%s, %s, %s, %s, %s, %s, 'scanned', NOW())
                 """,

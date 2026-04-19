@@ -49,6 +49,6 @@ class ScreenerPair extends Model
 
     public function pairScans(): HasMany
     {
-        return $this->hasMany(PairScan::class, 'screener_result_id')->with('signals');
+        return $this->hasMany(PairScan::class)->with('signals');
     }
 }

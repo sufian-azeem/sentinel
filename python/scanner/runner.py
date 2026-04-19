@@ -375,17 +375,17 @@ def main() -> None:
         return
 
     # ── Single-pair mode — invoked by SignalScanPairJob (one job per pair) ───
-    if args.screener_result_id:
-        row = repo.load_pair_by_result_id(args.screener_result_id)
+    if args.screener_pair_id:
+        row = repo.load_pair_by_result_id(args.screener_pair_id)
         if not row:
-            print(f"No screener_result found with id={args.screener_result_id}")
+            print(f"No screener_result found with id={args.screener_pair_id}")
             sys.exit(1)
         ticker = _make_ticker_from_db(row)
         scan_fn = _scan_pair_incremental if args.progressive else _scan_pair_with_candle_reuse
         kwargs: dict = dict(
             ticker=ticker,
             run_id=row["screener_run_id"],
-            result_id=row["screener_result_id"],
+            result_id=row["screener_pair_id"],
             exchange=args.exchange,
             lookback=args.lookback,
             verbose=args.verbose,
@@ -416,7 +416,7 @@ def main() -> None:
             return
 
         candidates = [_make_ticker_from_db(p) for p in raw_pairs]
-        result_id_map = {p["pair"]: p["screener_result_id"] for p in raw_pairs}
+        result_id_map = {p["pair"]: p["screener_pair_id"] for p in raw_pairs}
         print(f"Loaded {len(candidates)} qualified pairs — checking...\n")
 
         try:

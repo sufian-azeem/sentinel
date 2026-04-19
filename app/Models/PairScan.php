@@ -12,7 +12,7 @@ class PairScan extends Model
 
     protected $fillable = [
         'screener_run_id',
-        'screener_result_id',
+        'screener_pair_id',
         'pair',
         'timeframe',
         'exchange',

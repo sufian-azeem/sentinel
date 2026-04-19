@@ -54,7 +54,7 @@ class ScanSignalsCommand extends Command
             $skipped = 0;
 
             foreach ($pairs as $pair) {
-                $hasActiveSignal = Signal::whereHas('pairScan', fn ($q) => $q->where('screener_result_id', $pair->id))
+                $hasActiveSignal = Signal::whereHas('pairScan', fn ($q) => $q->where('screener_pair_id', $pair->id))
                     ->active()
                     ->exists();
 
@@ -65,7 +65,7 @@ class ScanSignalsCommand extends Command
                 }
 
                 // Delete stale scans without signals before fresh scan
-                PairScan::where('screener_result_id', $pair->id)
+                PairScan::where('screener_pair_id', $pair->id)
                     ->whereNotIn('id', Signal::select('pair_scan_id'))
                     ->delete();
 

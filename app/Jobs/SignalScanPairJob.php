@@ -20,7 +20,7 @@ class SignalScanPairJob implements ShouldQueue
     public int $backoff = 60;
 
     public function __construct(
-        public readonly int $screenerResultId,
+        public readonly int $screenerPairId,
         public readonly string $pair,
         public readonly string $exchange,
         public readonly int $lookback,
@@ -33,7 +33,7 @@ class SignalScanPairJob implements ShouldQueue
 
         $command = [
             'python3', 'run_scanner.py',
-            '--screener-result-id', (string) $this->screenerResultId,
+            '--screener-result-id', (string) $this->screenerPairId,
             '--exchange', $this->exchange,
             '--lookback', (string) $this->lookback,
         ];
@@ -51,7 +51,7 @@ class SignalScanPairJob implements ShouldQueue
             throw new \RuntimeException("Scanner failed for {$this->pair} (exit {$process->getExitCode()})");
         }
 
-        $newSignals = Signal::whereHas('pairScan', fn ($q) => $q->where('screener_result_id', $this->screenerResultId))
+        $newSignals = Signal::whereHas('pairScan', fn ($q) => $q->where('screener_pair_id', $this->screenerPairId))
             ->where('created_at', '>=', $startedAt)
             ->with('pairScan')
             ->get();
@@ -64,7 +64,7 @@ class SignalScanPairJob implements ShouldQueue
 
     private function appendToScannerLog(Process $process): void
     {
-        $output = '['.now()->toDateTimeString().'] Pair='.$this->pair.' ResultId='.$this->screenerResultId.' Exchange='.$this->exchange."\n";
+        $output = '['.now()->toDateTimeString().'] Pair='.$this->pair.' ResultId='.$this->screenerPairId.' Exchange='.$this->exchange."\n";
         $output .= $process->getOutput();
 
         if (! $process->isSuccessful()) {

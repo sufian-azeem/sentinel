@@ -29,7 +29,7 @@ class RunPipelineJob implements ShouldQueue
             ->qualified()
             ->pluck('id');
 
-        PairScan::whereIn('screener_result_id', $pairIds)->delete();
+        PairScan::whereIn('screener_pair_id', $pairIds)->delete();
 
         // Dispatch one per-pair job per qualified result (up to $top)
         ScreenerPair::where('screener_run_id', $this->screenerRunId)

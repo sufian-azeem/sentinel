@@ -36,7 +36,7 @@ class ScanController extends Controller
             $query->where('screener_run_id', request('run'))
                 ->orderByDesc(
                     ScreenerPair::select('score')
-                        ->whereColumn('id', 'pair_scans.screener_result_id')
+                        ->whereColumn('id', 'pair_scans.screener_pair_id')
                         ->limit(1)
                 );
         } else {
@@ -109,7 +109,7 @@ class ScanController extends Controller
 
     public function removePair(ScreenerPair $screenerPair): RedirectResponse
     {
-        PairScan::where('screener_result_id', $screenerPair->id)->delete();
+        PairScan::where('screener_pair_id', $screenerPair->id)->delete();
         $screenerPair->delete();
 
         return back()->with('success', "{$screenerPair->pair} removed.");
