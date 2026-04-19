@@ -51,9 +51,9 @@ class SignalScanPairJob implements ShouldQueue
             throw new \RuntimeException("Scanner failed for {$this->pair} (exit {$process->getExitCode()})");
         }
 
-        $newSignals = Signal::whereHas('signalScan', fn ($q) => $q->where('screener_result_id', $this->screenerResultId))
+        $newSignals = Signal::whereHas('pairScan', fn ($q) => $q->where('screener_result_id', $this->screenerResultId))
             ->where('created_at', '>=', $startedAt)
-            ->with('signalScan')
+            ->with('pairScan')
             ->get();
 
         $notifier = new DiscordNotifier;

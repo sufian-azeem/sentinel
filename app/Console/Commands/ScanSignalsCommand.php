@@ -3,10 +3,11 @@
 namespace App\Console\Commands;
 
 use App\Jobs\SignalScanPairJob;
-use App\Models\ScreenerResult;
+use App\Models\PairScan;
+use App\Models\ScreenerPair;
 use App\Models\ScreenerRun;
+use App\Models\Signal;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 
 class ScanSignalsCommand extends Command
 {
@@ -40,8 +41,8 @@ class ScanSignalsCommand extends Command
         foreach ($runs as $run) {
             $exchange = $run->filters_json['exchange'] ?? 'binance';
 
-            $pairs = ScreenerResult::where('screener_run_id', $run->id)
-                ->where('qualified', true)
+            $pairs = ScreenerPair::where('screener_run_id', $run->id)
+                ->qualified()
                 ->orderByDesc('score')
                 ->get();
 
@@ -52,11 +53,9 @@ class ScanSignalsCommand extends Command
             $dispatched = 0;
             $skipped = 0;
 
-            foreach ($pairs as $result) {
-                $hasActiveSignal = DB::table('signals')
-                    ->join('signal_scans', 'signals.signal_scan_id', '=', 'signal_scans.id')
-                    ->where('signal_scans.screener_result_id', $result->id)
-                    ->where('signals.status', 'active')
+            foreach ($pairs as $pair) {
+                $hasActiveSignal = Signal::whereHas('pairScan', fn ($q) => $q->where('screener_result_id', $pair->id))
+                    ->active()
                     ->exists();
 
                 if ($hasActiveSignal) {
@@ -66,14 +65,13 @@ class ScanSignalsCommand extends Command
                 }
 
                 // Delete stale scans without signals before fresh scan
-                DB::table('signal_scans')
-                    ->where('screener_result_id', $result->id)
-                    ->whereNotIn('id', fn ($q) => $q->select('signal_scan_id')->from('signals'))
+                PairScan::where('screener_result_id', $pair->id)
+                    ->whereNotIn('id', Signal::select('pair_scan_id'))
                     ->delete();
 
                 SignalScanPairJob::dispatch(
-                    $result->id,
-                    $result->pair,
+                    $pair->id,
+                    $pair->pair,
                     $exchange,
                     $lookback,
                     progressive: true,

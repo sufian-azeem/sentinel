@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('signals', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('signal_scan_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('pair_scan_id')->constrained('pair_scans')->cascadeOnDelete();
             $table->string('pair', 20);
             $table->string('timeframe', 5);
             $table->string('strategy', 30);
@@ -33,7 +33,7 @@ return new class extends Migration
 
             $table->index('pair');
             $table->index('status');
-            $table->index('signal_scan_id');
+            $table->index('pair_scan_id');
         });
     }
 

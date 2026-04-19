@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -12,7 +13,7 @@ class Signal extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'signal_scan_id',
+        'pair_scan_id',
         'pair',
         'timeframe',
         'strategy',
@@ -42,9 +43,14 @@ class Signal extends Model
         'created_at' => 'datetime',
     ];
 
-    public function signalScan(): BelongsTo
+    public function scopeActive(Builder $query): void
     {
-        return $this->belongsTo(SignalScan::class);
+        $query->whereIn('status', ['active', 'tp1_hit']);
+    }
+
+    public function pairScan(): BelongsTo
+    {
+        return $this->belongsTo(PairScan::class);
     }
 
     public function outcome(): HasOne

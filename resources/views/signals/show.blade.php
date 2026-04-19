@@ -137,14 +137,14 @@
                         @endforeach
                     </div>
                 </div>
-                @if($signal->signalScan?->screenerRun)
+                @if($signal->pairScan?->screenerRun)
                 <div class="flex justify-between">
                     <span class="text-gray-500">Run #</span>
-                    <span class="text-gray-400">{{ $signal->signalScan->screenerRun->id }}</span>
+                    <span class="text-gray-400">{{ $signal->pairScan->screenerRun->id }}</span>
                 </div>
                 <div class="flex justify-between">
                     <span class="text-gray-500">Exchange</span>
-                    <span class="text-gray-400">{{ $signal->signalScan->exchange }}</span>
+                    <span class="text-gray-400">{{ $signal->pairScan->exchange }}</span>
                 </div>
                 @endif
             </div>

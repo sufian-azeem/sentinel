@@ -38,6 +38,10 @@
                    class="px-3 py-1 rounded text-xs {{ request()->routeIs('run.*') ? 'bg-emerald-500/20 text-emerald-400' : 'text-gray-400 hover:text-gray-200' }}">
                     Run
                 </a>
+                <a href="{{ route('health') }}"
+                   class="px-3 py-1 rounded text-xs {{ request()->routeIs('health') ? 'bg-emerald-500/20 text-emerald-400' : 'text-gray-400 hover:text-gray-200' }}">
+                    Health
+                </a>
             </div>
             <div class="ml-auto text-xs text-gray-600">{{ now()->format('M d, Y g:i A') }} PKT</div>
         </div>

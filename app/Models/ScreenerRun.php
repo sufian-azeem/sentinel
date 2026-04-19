@@ -34,13 +34,13 @@ class ScreenerRun extends Model
         $query->where('status', 'completed');
     }
 
-    public function screenerResults(): HasMany
+    public function screenerPairs(): HasMany
     {
-        return $this->hasMany(ScreenerResult::class);
+        return $this->hasMany(ScreenerPair::class);
     }
 
-    public function signalScans(): HasMany
+    public function pairScans(): HasMany
     {
-        return $this->hasMany(SignalScan::class);
+        return $this->hasMany(PairScan::class);
     }
 }

@@ -2,10 +2,10 @@
 
 namespace App\Jobs;
 
-use App\Models\ScreenerResult;
+use App\Models\PairScan;
+use App\Models\ScreenerPair;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
-use Illuminate\Support\Facades\DB;
 
 class RunPipelineJob implements ShouldQueue
 {
@@ -24,19 +24,19 @@ class RunPipelineJob implements ShouldQueue
 
     public function handle(): void
     {
-        // Clear previous signal_scans for this run so re-runs don't accumulate stale scans
-        $resultIds = ScreenerResult::where('screener_run_id', $this->screenerRunId)
-            ->where('qualified', true)
+        // Clear previous pair_scans for this run so re-runs don't accumulate stale scans
+        $pairIds = ScreenerPair::where('screener_run_id', $this->screenerRunId)
+            ->qualified()
             ->pluck('id');
 
-        DB::table('signal_scans')->whereIn('screener_result_id', $resultIds)->delete();
+        PairScan::whereIn('screener_result_id', $pairIds)->delete();
 
         // Dispatch one per-pair job per qualified result (up to $top)
-        ScreenerResult::where('screener_run_id', $this->screenerRunId)
-            ->where('qualified', true)
+        ScreenerPair::where('screener_run_id', $this->screenerRunId)
+            ->qualified()
             ->orderByDesc('score')
             ->limit($this->top)
-            ->each(function (ScreenerResult $result): void {
+            ->each(function (ScreenerPair $result): void {
                 SignalScanPairJob::dispatch(
                     $result->id,
                     $result->pair,

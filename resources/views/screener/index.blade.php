@@ -102,7 +102,7 @@
                             $tvExchange = $usedMexc ? 'MEXC' : 'BINANCE';
                             $pairUrl = $exchange === 'hyperliquid'
                                 ? 'https://app.hyperliquid.xyz/trade/'.$baseAsset
-                                : 'https://www.tradingview.com/chart/?symbol='.$tvExchange.':'.str_replace('/', '', $r->pair).'&interval=60';
+                                : 'https://www.tradingview.com/chart/?symbol='.$tvExchange.':'.rawurlencode(str_replace(['/', '币安人生'], ['', 'BIANRENSHENG'], $r->pair)).'&interval=60';
                         @endphp
                         <a href="{{ $pairUrl }}" target="_blank" class="text-white hover:text-emerald-400">{{ $r->pair }}</a>
                     </td>
@@ -127,7 +127,7 @@
                         </div>
                     </td>
                     <td class="px-4 py-2">
-                        @php $scans = $r->signalScans->keyBy('timeframe'); @endphp
+                        @php $scans = $r->pairScans->keyBy('timeframe'); @endphp
                         @if($scans->isEmpty())
                             <span class="text-gray-700">—</span>
                         @else

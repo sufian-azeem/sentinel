@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\Exchange;
 use App\Jobs\RunPipelineJob;
 use App\Models\ScreenerRun;
 use App\Services\ScreenerService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class RunController extends Controller
@@ -27,7 +29,7 @@ class RunController extends Controller
     {
         $validated = $request->validate([
             'data_file' => ['required', 'file', 'mimes:json', 'max:51200'],
-            'exchange' => ['required', 'in:hyperliquid,binance'],
+            'exchange' => ['required', Rule::enum(Exchange::class)],
             'top' => ['required', 'integer', 'min:1', 'max:100'],
             'lookback' => ['required', 'integer', 'min:1', 'max:10'],
             'min_volume' => ['nullable', 'numeric', 'min:0'],

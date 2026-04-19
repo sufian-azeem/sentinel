@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Enums\Exchange;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
@@ -11,7 +12,7 @@ use Symfony\Component\Process\Process;
     {--screener-run-id= : Load qualified pairs from this screener run ID (DB-driven mode)}
     {--file= : Path to local JSON file — runs full screener+scanner (legacy mode)}
     {--top=20 : Number of screened pairs to check}
-    {--exchange=hyperliquid : CCXT exchange to fetch candles from}
+    {--exchange=hyperliquid : CCXT exchange to fetch candles from (hyperliquid|binance)}
     {--lookback=1 : Number of recent closed candles to check per pair}')]
 #[Description('Run the signal scanner — checks Alligator BUY signals for screened pairs')]
 class RunScanner extends Command
@@ -33,8 +34,9 @@ class RunScanner extends Command
         $cmd[] = '--top';
         $cmd[] = $this->option('top');
 
+        $exchange = Exchange::from($this->option('exchange'));
         $cmd[] = '--exchange';
-        $cmd[] = $this->option('exchange');
+        $cmd[] = $exchange->value;
 
         $cmd[] = '--lookback';
         $cmd[] = $this->option('lookback');

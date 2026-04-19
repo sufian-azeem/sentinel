@@ -10,7 +10,7 @@ class SignalController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Signal::with('signalScan')->latest('id');
+        $query = Signal::with('pairScan')->latest('id');
 
         if ($request->filled('pair')) {
             $query->where('pair', 'like', '%'.$request->pair.'%');
@@ -31,7 +31,7 @@ class SignalController extends Controller
 
     public function show(Signal $signal)
     {
-        $signal->load('signalScan.screenerRun', 'outcome');
+        $signal->load('pairScan.screenerRun', 'outcome');
 
         return view('signals.show', compact('signal'));
     }

@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Enums\Exchange;
 use App\Models\Signal;
 use App\Services\SignalTrackerService;
 use Illuminate\Console\Command;
@@ -17,9 +18,7 @@ class TrackSignalsCommand extends Command
 
     public function handle(): int
     {
-        $signals = Signal::whereIn('status', ['active', 'tp1_hit'])
-            ->with('signalScan')
-            ->get();
+        $signals = Signal::active()->with('pairScan')->get();
 
         if ($signals->isEmpty()) {
             $this->info('No active signals to track.');
@@ -27,7 +26,7 @@ class TrackSignalsCommand extends Command
             return self::SUCCESS;
         }
 
-        $byExchange = $signals->groupBy(fn (Signal $s) => $s->signalScan->exchange ?? 'binance');
+        $byExchange = $signals->groupBy(fn (Signal $s) => $s->pairScan->exchange ?? Exchange::Binance->value);
 
         $updated = 0;
 
@@ -70,9 +69,9 @@ class TrackSignalsCommand extends Command
      */
     private function fetchCandles(string $exchange, array $pairs): array
     {
-        return match (strtolower($exchange)) {
-            'binance' => $this->fetchBinanceCandles($pairs),
-            default => $this->fetchHyperliquidCandles($pairs),
+        return match (Exchange::from($exchange)) {
+            Exchange::Binance => $this->fetchBinanceCandles($pairs),
+            Exchange::Hyperliquid => $this->fetchHyperliquidCandles($pairs),
         };
     }
 

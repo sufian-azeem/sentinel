@@ -2,23 +2,15 @@
 
 namespace App\Providers;
 
+use App\Listeners\NotifyHealthCheckFailed;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
+use Spatie\Health\Events\CheckEndedEvent;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
-    public function register(): void
-    {
-        //
-    }
-
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
-        //
+        Event::listen(CheckEndedEvent::class, NotifyHealthCheckFailed::class);
     }
 }

@@ -8,6 +8,10 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
+Schedule::command('health:schedule-check-heartbeat')->everyMinute();
+Schedule::command('health:queue-check-heartbeat')->everyMinute();
+Schedule::command('health:check')->everyFiveMinutes();
+
 Schedule::command('trading:scan-signals')
     ->everyFifteenMinutes()
     ->appendOutputTo(storage_path('logs/scanner.log'));

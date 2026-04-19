@@ -13,7 +13,7 @@ class DashboardController extends Controller
 
         $activeSignals = Signal::where('status', 'active')->count();
 
-        $recentSignals = Signal::with('signalScan')
+        $recentSignals = Signal::with('pairScan')
             ->latest('id')
             ->limit(10)
             ->get();

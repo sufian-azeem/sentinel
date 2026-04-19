@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\ScreenerResult;
+use App\Models\ScreenerPair;
 use App\Models\ScreenerRun;
 use Illuminate\Support\Facades\DB;
 
@@ -82,7 +82,7 @@ class ScreenerService
             });
 
             foreach ($results as $row) {
-                ScreenerResult::create(['screener_run_id' => $run->id, ...$row]);
+                ScreenerPair::create(['screener_run_id' => $run->id, ...$row]);
             }
 
             $totalMatched = count(array_filter($results, fn (array $r) => $r['qualified']));

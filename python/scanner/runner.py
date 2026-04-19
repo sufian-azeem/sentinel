@@ -474,7 +474,7 @@ def main() -> None:
 
     # ── Step 3: Check signals on each of 15M / 1H / 4H ──────────────────────
     # Alligator values are extracted from each scan's conditions_json and stored
-    # in screener_results.tf_data_json — no separate pre-fetch needed.
+    # in screener_pairs.tf_data_json — no separate pre-fetch needed.
     all_results: list[dict] = []
     for ticker in candidates:
         result_id = result_id_map.get(ticker.pair)

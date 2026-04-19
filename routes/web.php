@@ -7,8 +7,11 @@ use App\Http\Controllers\ScanController;
 use App\Http\Controllers\ScreenerController;
 use App\Http\Controllers\SignalController;
 use Illuminate\Support\Facades\Route;
+use Spatie\Health\Http\Controllers\HealthCheckResultsController;
 
 Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+
+Route::get('/health', HealthCheckResultsController::class)->name('health');
 
 Route::post('/screener/favorites/{pair}', [FavoritePairController::class, 'toggle'])->name('screener.favorites.toggle')->where('pair', '.+');
 
@@ -21,7 +24,7 @@ Route::get('/signals/{signal}', [SignalController::class, 'show'])->name('signal
 Route::post('/signals/{signal}/close', [SignalController::class, 'closeManually'])->name('signals.close');
 
 Route::get('/scans', [ScanController::class, 'index'])->name('scans.index');
-Route::delete('/scans/pairs/{screenerResult}', [ScanController::class, 'removePair'])->name('scans.pairs.remove');
+Route::delete('/scans/pairs/{screenerPair}', [ScanController::class, 'removePair'])->name('scans.pairs.remove');
 
 Route::get('/run', [RunController::class, 'index'])->name('run.index');
 Route::post('/run', [RunController::class, 'store'])->name('run.store');

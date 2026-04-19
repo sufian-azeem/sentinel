@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\FavoritePair;
-use App\Models\ScreenerResult;
+use App\Models\ScreenerPair;
 use App\Models\ScreenerRun;
 
 class ScreenerController extends Controller
@@ -42,8 +42,8 @@ class ScreenerController extends Controller
 
     private function loadResults(int $runId)
     {
-        return ScreenerResult::where('screener_run_id', $runId)
-            ->with('signalScans')
+        return ScreenerPair::where('screener_run_id', $runId)
+            ->with('pairScans')
             ->orderByDesc('qualified')
             ->orderByDesc('score')
             ->get();

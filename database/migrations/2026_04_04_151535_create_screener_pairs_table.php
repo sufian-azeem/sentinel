@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('screener_results', function (Blueprint $table) {
+        Schema::create('screener_pairs', function (Blueprint $table) {
             $table->id();
             $table->foreignId('screener_run_id')->constrained()->cascadeOnDelete();
             $table->string('symbol', 30);
@@ -38,6 +38,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('screener_results');
+        Schema::dropIfExists('screener_pairs');
     }
 };

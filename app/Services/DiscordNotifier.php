@@ -9,7 +9,7 @@ class DiscordNotifier
 {
     public function signalFound(Signal $signal): void
     {
-        $scan = $signal->signalScan;
+        $scan = $signal->pairScan;
         $exchange = $scan?->exchange ?? 'unknown';
         $exchangeLabel = ucfirst($exchange);
 

@@ -74,11 +74,11 @@ def fail_screener_run(run_id: int, error_message: str) -> None:
 
 
 # ---------------------------------------------------------------------------
-# screener_results
+# screener_pairs
 # ---------------------------------------------------------------------------
 
 def create_screener_result(run_id: int, ticker: TickerScore) -> int:
-    """Insert one screener_result row for a ticker and return its id."""
+    """Insert one screener_pairs row for a ticker and return its id."""
     tf_data = {
         label: {
             "change_pct": snap.change_pct,
@@ -96,7 +96,7 @@ def create_screener_result(run_id: int, ticker: TickerScore) -> int:
         with conn.cursor() as cur:
             cur.execute(
                 """
-                INSERT INTO screener_results
+                INSERT INTO screener_pairs
                     (screener_run_id, symbol, pair, price, rvol, score,
                      alligator_tf, bullish_count, confluence,
                      qualified, disqualify_reason,
@@ -127,7 +127,7 @@ def create_screener_result(run_id: int, ticker: TickerScore) -> int:
 
 
 # ---------------------------------------------------------------------------
-# screener_results (update)
+# screener_pairs (update)
 # ---------------------------------------------------------------------------
 
 def update_screener_result_alligator(
@@ -144,7 +144,7 @@ def update_screener_result_alligator(
     conn = get_connection()
     try:
         with conn.cursor() as cur:
-            cur.execute("SELECT tf_data_json FROM screener_results WHERE id = %s", (result_id,))
+            cur.execute("SELECT tf_data_json FROM screener_pairs WHERE id = %s", (result_id,))
             row = cur.fetchone()
             existing = json.loads(row[0]) if row and row[0] else {}
             for tf, alligator_vals in tf_alligator.items():
@@ -152,7 +152,7 @@ def update_screener_result_alligator(
                 if tf_exchange and tf in tf_exchange:
                     existing[tf]["exchange"] = tf_exchange[tf]
             cur.execute(
-                "UPDATE screener_results SET tf_data_json = %s WHERE id = %s",
+                "UPDATE screener_pairs SET tf_data_json = %s WHERE id = %s",
                 (json.dumps(existing), result_id),
             )
         conn.commit()
@@ -161,18 +161,18 @@ def update_screener_result_alligator(
 
 
 # ---------------------------------------------------------------------------
-# screener_results (read)
+# screener_pairs (read)
 # ---------------------------------------------------------------------------
 
 def load_qualified_pairs(screener_run_id: int, top_n: int) -> list[dict]:
-    """Load top-N qualified screener results for a given run, ordered by score desc."""
+    """Load top-N qualified screener pairs for a given run, ordered by score desc."""
     conn = get_connection()
     try:
         with conn.cursor() as cur:
             cur.execute(
                 """
                 SELECT id, pair, alligator_tf, price, score, confluence, rvol
-                FROM screener_results
+                FROM screener_pairs
                 WHERE screener_run_id = %s AND qualified = 1
                 ORDER BY score DESC
                 LIMIT %s
@@ -197,14 +197,14 @@ def load_qualified_pairs(screener_run_id: int, top_n: int) -> list[dict]:
 
 
 def load_pair_by_result_id(result_id: int) -> dict | None:
-    """Load a single screener result by its id (used by per-pair scanner jobs)."""
+    """Load a single screener pair by its id (used by per-pair scanner jobs)."""
     conn = get_connection()
     try:
         with conn.cursor() as cur:
             cur.execute(
                 """
                 SELECT id, screener_run_id, pair, alligator_tf, price, score, confluence, rvol, tf_data_json
-                FROM screener_results
+                FROM screener_pairs
                 WHERE id = %s
                 """,
                 (result_id,),
@@ -228,15 +228,15 @@ def load_pair_by_result_id(result_id: int) -> dict | None:
 
 
 # ---------------------------------------------------------------------------
-# signal_scans
+# pair_scans
 # ---------------------------------------------------------------------------
 
 def delete_signal_scans_for_run(run_id: int) -> None:
-    """Delete all signal_scans for a screener run before re-scanning (signals are preserved)."""
+    """Delete all pair_scans for a screener run before re-scanning (signals are preserved)."""
     conn = get_connection()
     try:
         with conn.cursor() as cur:
-            cur.execute("DELETE FROM signal_scans WHERE screener_run_id = %s", (run_id,))
+            cur.execute("DELETE FROM pair_scans WHERE screener_run_id = %s", (run_id,))
         conn.commit()
     finally:
         conn.close()
@@ -250,13 +250,13 @@ def create_signal_scan(
     exchange: str,
     strategy: str,
 ) -> int:
-    """Insert a new signal_scan row and return its id."""
+    """Insert a new pair_scan row and return its id."""
     conn = get_connection()
     try:
         with conn.cursor() as cur:
             cur.execute(
                 """
-                INSERT INTO signal_scans
+                INSERT INTO pair_scans
                     (screener_run_id, screener_result_id, pair, timeframe,
                      exchange, strategy, status, created_at)
                 VALUES (%s, %s, %s, %s, %s, %s, 'scanned', NOW())
@@ -277,13 +277,13 @@ def update_signal_scan(
     conditions_json: list,
     error_message: str | None = None,
 ) -> None:
-    """Update a signal_scan with results after check_signal() completes."""
+    """Update a pair_scan with results after check_signal() completes."""
     conn = get_connection()
     try:
         with conn.cursor() as cur:
             cur.execute(
                 """
-                UPDATE signal_scans
+                UPDATE pair_scans
                 SET status = %s, candles_fetched = %s,
                     conditions_json = %s, error_message = %s
                 WHERE id = %s
@@ -326,7 +326,7 @@ def create_signal(scan_id: int, result: dict) -> int:
             cur.execute(
                 """
                 INSERT INTO signals
-                    (signal_scan_id, pair, timeframe, strategy,
+                    (pair_scan_id, pair, timeframe, strategy,
                      entry_type, entry_price, sl_price, tp1_price, tp2_price,
                      risk_pct, candle_time, candles_ago,
                      screener_score, confluence, conditions_json,

@@ -115,6 +115,20 @@ This project has domain-specific skills available. You MUST activate the relevan
 
 - When creating new models, create useful factories and seeders for them too. Ask the user if they need any other things, using `php artisan make:model --help` to check the available options.
 
+## Eloquent Over Raw Queries
+
+- **Never use `DB::table()`** — always use the Eloquent model for that table instead. Every table has a model; use it.
+- Raw `DB::` calls bypass model casts, relationships, scopes, and events — always prefer `Model::query()`, `Model::where()`, etc.
+- The only acceptable exception is migrations.
+
+## Relations Over Joins
+
+- **Never write `->join()`, `->leftJoin()`, or `->rightJoin()`** — use Eloquent relationships instead.
+- For filtering across relations use `->whereHas('relation', ...)`.
+- For eager-loading use `->with('relation')`.
+- For ordering by a related column use a correlated subquery: `->orderByDesc(Related::select('col')->whereColumn('id', 'foreign_key')->limit(1))`.
+- Joins bypass relationship definitions, break when tables are renamed, and hide intent — relationships are always preferred.
+
 ## APIs & Eloquent Resources
 
 - For APIs, default to using Eloquent API Resources and API versioning unless existing API routes do not, then you should follow existing application convention.

@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class SignalScan extends Model
+class PairScan extends Model
 {
     public $timestamps = false;
 
@@ -33,9 +33,9 @@ class SignalScan extends Model
         return $this->belongsTo(ScreenerRun::class);
     }
 
-    public function screenerResult(): BelongsTo
+    public function screenerPair(): BelongsTo
     {
-        return $this->belongsTo(ScreenerResult::class);
+        return $this->belongsTo(ScreenerPair::class);
     }
 
     public function signals(): HasMany

@@ -2,11 +2,12 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class ScreenerResult extends Model
+class ScreenerPair extends Model
 {
     public $timestamps = false;
 
@@ -36,13 +37,18 @@ class ScreenerResult extends Model
         'created_at' => 'datetime',
     ];
 
+    public function scopeQualified(Builder $query): void
+    {
+        $query->where('qualified', true);
+    }
+
     public function screenerRun(): BelongsTo
     {
         return $this->belongsTo(ScreenerRun::class);
     }
 
-    public function signalScans(): HasMany
+    public function pairScans(): HasMany
     {
-        return $this->hasMany(SignalScan::class, 'screener_result_id')->with('signals');
+        return $this->hasMany(PairScan::class, 'screener_result_id')->with('signals');
     }
 }
