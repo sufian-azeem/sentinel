@@ -5,7 +5,7 @@
             <h1 class="text-lg font-bold text-gray-200 tracking-wide">
                 {{ $signal->pair }} · {{ $signal->timeframe }} · {{ $signal->entry_type }}
             </h1>
-            <p class="text-xs text-gray-600 mt-0.5">Signal #{{ $signal->id }} · {{ $signal->candle_time->format('M d, Y g:i A') }} PKT</p>
+            <p class="text-xs text-gray-600 mt-0.5">Signal #{{ $signal->id }} · <x-timestamp :value="$signal->candle_time" format="M d, Y g:i A" /> {{ now(config('app.timezone'))->format('T') }}</p>
         </div>
         <a href="{{ route('signals.index') }}" class="text-xs text-emerald-500 hover:text-emerald-400">← All Signals</a>
     </div>
@@ -263,9 +263,9 @@
                 <div class="bg-gray-800/50 rounded p-3 text-xs">
                     <div class="text-gray-600 mb-2 font-semibold">LTF Alligator</div>
                     <div class="grid grid-cols-3 gap-1 text-gray-400">
-                        <div>Jaw: <span class="text-gray-300">{{ number_format($candle['ltf']['jaw'], 6) }}</span></div>
-                        <div>Teeth: <span class="text-gray-300">{{ number_format($candle['ltf']['teeth'], 6) }}</span></div>
-                        <div>Lips: <span class="text-gray-300">{{ number_format($candle['ltf']['lips'], 6) }}</span></div>
+                        <div>Jaw: <span class="text-gray-300">{{ number_format($candle['ltf']['jaw_off'], 6) }}</span></div>
+                        <div>Teeth: <span class="text-gray-300">{{ number_format($candle['ltf']['teeth_off'], 6) }}</span></div>
+                        <div>Lips: <span class="text-gray-300">{{ number_format($candle['ltf']['lips_off'], 6) }}</span></div>
                     </div>
                 </div>
                 @endif
@@ -273,9 +273,9 @@
                 <div class="bg-gray-800/50 rounded p-3 text-xs">
                     <div class="text-gray-600 mb-2 font-semibold">HTF Alligator</div>
                     <div class="grid grid-cols-3 gap-1 text-gray-400">
-                        <div>Jaw: <span class="text-gray-300">{{ number_format($candle['htf']['jaw'], 6) }}</span></div>
-                        <div>Teeth: <span class="text-gray-300">{{ number_format($candle['htf']['teeth'], 6) }}</span></div>
-                        <div>Lips: <span class="text-gray-300">{{ number_format($candle['htf']['lips'], 6) }}</span></div>
+                        <div>Jaw: <span class="text-gray-300">{{ number_format($candle['htf']['jaw_off'], 6) }}</span></div>
+                        <div>Teeth: <span class="text-gray-300">{{ number_format($candle['htf']['teeth_off'], 6) }}</span></div>
+                        <div>Lips: <span class="text-gray-300">{{ number_format($candle['htf']['lips_off'], 6) }}</span></div>
                     </div>
                 </div>
                 @endif

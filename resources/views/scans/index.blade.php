@@ -107,8 +107,9 @@
                 <span class="text-gray-500 text-xs">{{ $scan->exchange }}</span>
                 <span class="text-gray-500 text-xs">
                     @if($scan->screenerRun)
-                        Run #{{ $scan->screenerRun->id }} · {{ $scan->screenerRun->started_at->format('M d g:i A') }}
+                        Run #{{ $scan->screenerRun->id }} ·
                     @endif
+                    <x-timestamp :value="$scan->created_at" />
                 </span>
                 <span class="ml-auto flex items-center gap-3">
                     @if($scan->error_message)
@@ -156,7 +157,7 @@
                 @foreach($scan->conditions_json as $candle)
                 <div class="border-b border-gray-800/30 last:border-0">
                     <div class="px-4 py-2 bg-gray-800/20 flex items-center gap-4 text-xs">
-                        <span class="text-gray-400">{{ $candle['candle_time'] ?? '' }}</span>
+                        <span class="text-gray-400"><x-timestamp :value="$candle['candle_time'] ?? null" format="Y-m-d H:i" /></span>
                         <span class="text-gray-600">{{ $candle['candles_ago'] ?? 0 }} candle(s) ago</span>
                         @if(isset($candle['signal']))
                             <span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded">
@@ -218,9 +219,9 @@
                         <div class="bg-gray-800/50 rounded p-3 text-xs">
                             <div class="text-gray-600 mb-2 font-semibold">LTF Alligator</div>
                             <div class="grid grid-cols-3 gap-1 text-gray-400">
-                                <div>Jaw: <span class="text-gray-300">{{ number_format($candle['ltf']['jaw'], 6) }}</span></div>
-                                <div>Teeth: <span class="text-gray-300">{{ number_format($candle['ltf']['teeth'], 6) }}</span></div>
-                                <div>Lips: <span class="text-gray-300">{{ number_format($candle['ltf']['lips'], 6) }}</span></div>
+                                <div>Jaw: <span class="text-gray-300">{{ number_format($candle['ltf']['jaw_off'], 6) }}</span></div>
+                                <div>Teeth: <span class="text-gray-300">{{ number_format($candle['ltf']['teeth_off'], 6) }}</span></div>
+                                <div>Lips: <span class="text-gray-300">{{ number_format($candle['ltf']['lips_off'], 6) }}</span></div>
                             </div>
                         </div>
                         @endif
@@ -228,9 +229,9 @@
                         <div class="bg-gray-800/50 rounded p-3 text-xs">
                             <div class="text-gray-600 mb-2 font-semibold">HTF Alligator</div>
                             <div class="grid grid-cols-3 gap-1 text-gray-400">
-                                <div>Jaw: <span class="text-gray-300">{{ number_format($candle['htf']['jaw'], 6) }}</span></div>
-                                <div>Teeth: <span class="text-gray-300">{{ number_format($candle['htf']['teeth'], 6) }}</span></div>
-                                <div>Lips: <span class="text-gray-300">{{ number_format($candle['htf']['lips'], 6) }}</span></div>
+                                <div>Jaw: <span class="text-gray-300">{{ number_format($candle['htf']['jaw_off'], 6) }}</span></div>
+                                <div>Teeth: <span class="text-gray-300">{{ number_format($candle['htf']['teeth_off'], 6) }}</span></div>
+                                <div>Lips: <span class="text-gray-300">{{ number_format($candle['htf']['lips_off'], 6) }}</span></div>
                             </div>
                         </div>
                         @endif

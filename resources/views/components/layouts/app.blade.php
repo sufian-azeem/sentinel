@@ -43,7 +43,7 @@
                     Health
                 </a>
             </div>
-            <div class="ml-auto text-xs text-gray-600">{{ now()->format('M d, Y g:i A') }} PKT</div>
+            <div class="ml-auto text-xs text-gray-600"><x-timestamp :value="now()" format="M d, Y g:i A" /> {{ now(config('app.timezone'))->format('T') }}</div>
         </div>
     </nav>
 

@@ -6,7 +6,7 @@ use App\Models\Signal;
 use App\Services\DiscordNotifier;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
-use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Log;
 use Symfony\Component\Process\Process;
 
 class SignalScanPairJob implements ShouldQueue
@@ -33,7 +33,7 @@ class SignalScanPairJob implements ShouldQueue
 
         $command = [
             'python3', 'run_scanner.py',
-            '--screener-result-id', (string) $this->screenerPairId,
+            '--screener-pair-id', (string) $this->screenerPairId,
             '--exchange', $this->exchange,
             '--lookback', (string) $this->lookback,
         ];
@@ -45,7 +45,7 @@ class SignalScanPairJob implements ShouldQueue
         $process = new Process($command, base_path('python'), timeout: $this->timeout);
         $process->run();
 
-        $this->appendToScannerLog($process);
+        $this->logProcessOutput($process);
 
         if (! $process->isSuccessful()) {
             throw new \RuntimeException("Scanner failed for {$this->pair} (exit {$process->getExitCode()})");
@@ -62,15 +62,31 @@ class SignalScanPairJob implements ShouldQueue
         }
     }
 
-    private function appendToScannerLog(Process $process): void
+    private function logProcessOutput(Process $process): void
     {
-        $output = '['.now()->toDateTimeString().'] Pair='.$this->pair.' ResultId='.$this->screenerPairId.' Exchange='.$this->exchange."\n";
-        $output .= $process->getOutput();
+        $context = [
+            'pair' => $this->pair,
+            'pair_id' => $this->screenerPairId,
+            'exchange' => $this->exchange,
+            'mode' => $this->progressive ? 'progressive' : 'full',
+        ];
 
-        if (! $process->isSuccessful()) {
-            $output .= "\n[STDERR]\n".$process->getErrorOutput();
+        $log = Log::channel('scanner');
+
+        foreach (explode("\n", trim($process->getOutput())) as $line) {
+            if ($line === '') {
+                continue;
+            }
+            $log->info($line, $context);
         }
 
-        File::append(storage_path('logs/scanner.log'), $output."\n");
+        if (! $process->isSuccessful()) {
+            foreach (explode("\n", trim($process->getErrorOutput())) as $line) {
+                if ($line === '') {
+                    continue;
+                }
+                $log->error($line, $context);
+            }
+        }
     }
 }

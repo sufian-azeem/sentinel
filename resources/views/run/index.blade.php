@@ -201,7 +201,7 @@
                         <span class="text-gray-500 text-[10px] font-mono tabular-nums">#{{ str_pad($run->id, 2, '0', STR_PAD_LEFT) }}</span>
                         <x-exchange-badge :exchange="$run->filters_json['exchange'] ?? ''" />
                         <x-run-status :status="$run->status" />
-                        <span class="ml-auto text-[10px] text-gray-700 tabular-nums">{{ $run->started_at->format('M d g:i A') }}</span>
+                        <span class="ml-auto text-[10px] text-gray-700 tabular-nums"><x-timestamp :value="$run->started_at" /></span>
                     </div>
                     <div class="flex items-center justify-between">
                         <span class="text-[10px] text-gray-700">

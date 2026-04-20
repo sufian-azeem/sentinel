@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('timeframe', 5);
             $table->string('strategy', 30);
             $table->string('entry_type', 20);
+            $table->string('reason')->nullable();
             $table->decimal('entry_price', 20, 8);
             $table->decimal('sl_price', 20, 8)->nullable();
             $table->decimal('tp1_price', 20, 8)->nullable();

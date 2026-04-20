@@ -9,7 +9,7 @@
                 <x-exchange-badge :exchange="$run->filters_json['exchange']" />
                 @endif
                 <span class="text-xs text-gray-600">
-                    Run #{{ $run->id }} · {{ $run->started_at->format('M d, Y g:i A') }} PKT ·
+                    Run #{{ $run->id }} · <x-timestamp :value="$run->started_at" format="M d, Y g:i A" /> {{ now(config('app.timezone'))->format('T') }} ·
                     {{ $run->total_matched }} matched / {{ $run->total_scanned }} scanned
                 </span>
             </div>
@@ -97,14 +97,8 @@
                     <td class="px-4 py-2 font-semibold">
                         @php
                             $exchange = $run->filters_json['exchange'] ?? 'binance';
-                            $baseAsset = Str::before($r->pair, '/');
-                            $usedMexc = collect($r->tf_data_json ?? [])->contains(fn($td) => ($td['exchange'] ?? null) === 'mexc');
-                            $tvExchange = $usedMexc ? 'MEXC' : 'BINANCE';
-                            $pairUrl = $exchange === 'hyperliquid'
-                                ? 'https://app.hyperliquid.xyz/trade/'.$baseAsset
-                                : 'https://www.tradingview.com/chart/?symbol='.$tvExchange.':'.rawurlencode(str_replace(['/', '币安人生'], ['', 'BIANRENSHENG'], $r->pair)).'&interval=60';
                         @endphp
-                        <a href="{{ $pairUrl }}" target="_blank" class="text-white hover:text-emerald-400">{{ $r->pair }}</a>
+                        <x-pair-link :pair="$r->pair" :exchange="$exchange" :tf-data="$r->tf_data_json" />
                     </td>
                     <td class="px-4 py-2 text-right text-gray-300">{{ number_format($r->price, 4) }}</td>
                     <td class="px-4 py-2 text-right text-yellow-400">{{ number_format($r->score, 3) }}</td>

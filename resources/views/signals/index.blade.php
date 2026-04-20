@@ -49,7 +49,9 @@
             <tbody>
                 @forelse($signals as $signal)
                 <tr class="border-b border-gray-800/50 hover:bg-gray-800/30">
-                    <td class="px-4 py-2 font-semibold text-white">{{ $signal->pair }}</td>
+                    <td class="px-4 py-2 font-semibold">
+                        <x-pair-link :pair="$signal->pair" />
+                    </td>
                     <td class="px-4 py-2 text-gray-400">{{ $signal->timeframe }}</td>
                     <td class="px-4 py-2 text-yellow-400">{{ $signal->entry_type }}</td>
                     <td class="px-4 py-2 text-right text-gray-300">{{ number_format($signal->entry_price, 4) }}</td>
@@ -57,7 +59,7 @@
                     <td class="px-4 py-2 text-right text-emerald-400">{{ $signal->tp1_price ? number_format($signal->tp1_price, 4) : '—' }}</td>
                     <td class="px-4 py-2 text-right text-emerald-300">{{ $signal->tp2_price ? number_format($signal->tp2_price, 4) : '—' }}</td>
                     <td class="px-4 py-2 text-right text-gray-400">{{ number_format($signal->risk_pct, 2) }}%</td>
-                    <td class="px-4 py-2 text-gray-500">{{ $signal->candle_time->format('M d g:i A') }}</td>
+                    <td class="px-4 py-2 text-gray-500"><x-timestamp :value="$signal->candle_time" /></td>
                     <td class="px-4 py-2 text-right text-gray-500">-{{ $signal->candles_ago }}</td>
                     <td class="px-4 py-2"><x-signal-status :status="$signal->status" /></td>
                     <td class="px-4 py-2">

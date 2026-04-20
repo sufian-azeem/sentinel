@@ -37,6 +37,7 @@ def get_connection() -> pymysql.Connection:
     else:
         host = raw_host
 
+    tz_offset = env.get("APP_TIMEZONE_OFFSET", "+05:00")
     return pymysql.connect(
         host=host,
         port=int(env.get("DB_PORT", 3306)),
@@ -45,4 +46,5 @@ def get_connection() -> pymysql.Connection:
         password=env.get("DB_PASSWORD", ""),
         charset="utf8mb4",
         autocommit=False,
+        init_command=f"SET time_zone='{tz_offset}'",
     )

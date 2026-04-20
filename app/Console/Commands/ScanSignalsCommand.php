@@ -64,6 +64,8 @@ class ScanSignalsCommand extends Command
                     continue;
                 }
 
+                $hasExistingScan = PairScan::where('screener_pair_id', $pair->id)->exists();
+
                 // Delete stale scans without signals before fresh scan
                 PairScan::where('screener_pair_id', $pair->id)
                     ->whereNotIn('id', Signal::select('pair_scan_id'))
@@ -74,7 +76,7 @@ class ScanSignalsCommand extends Command
                     $pair->pair,
                     $exchange,
                     $lookback,
-                    progressive: true,
+                    progressive: $hasExistingScan,
                 );
 
                 $dispatched++;

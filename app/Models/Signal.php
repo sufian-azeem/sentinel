@@ -18,6 +18,7 @@ class Signal extends Model
         'timeframe',
         'strategy',
         'entry_type',
+        'reason',
         'entry_price',
         'sl_price',
         'tp1_price',

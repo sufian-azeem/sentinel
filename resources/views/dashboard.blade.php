@@ -36,7 +36,7 @@
         <div class="bg-gray-900 border border-gray-800 rounded-lg p-4">
             <div class="text-xs text-gray-500 mb-1">Last Run At</div>
             <div class="text-sm text-gray-300">
-                {{ $latestRun ? $latestRun->started_at->format('M d g:i A') . ' PKT' : '—' }}
+                @if($latestRun)<x-timestamp :value="$latestRun->started_at" /> {{ now(config('app.timezone'))->format('T') }}@else—@endif
             </div>
         </div>
     </div>
@@ -105,7 +105,7 @@
                     @foreach($recentRuns as $run)
                     <tr class="border-b border-gray-800/50 hover:bg-gray-800/30 cursor-pointer"
                         onclick="window.location='{{ route('screener.show', $run) }}'">
-                        <td class="px-4 py-2 text-gray-400">{{ $run->started_at->format('M d g:i A') }}</td>
+                        <td class="px-4 py-2 text-gray-400"><x-timestamp :value="$run->started_at" /></td>
                         <td class="px-4 py-2"><x-exchange-badge :exchange="$run->filters_json['exchange'] ?? null" /></td>
                         <td class="px-4 py-2 text-gray-500">{{ $run->data_source }}</td>
                         <td class="px-4 py-2 text-right text-gray-400">{{ $run->total_scanned }}</td>

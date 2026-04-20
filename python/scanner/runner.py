@@ -171,16 +171,20 @@ def _scan_pair_with_candle_reuse(
                 # Extract and store alligator snapshot from conditions_json
                 first_candle = (result.get("conditions_json") or [{}])[0]
                 ltf = first_candle.get("ltf", {})
-                if ltf.get("jaw_off") is not None:
-                    jaw   = float(ltf["jaw_off"]   or 0)
-                    teeth = float(ltf["teeth_off"] or 0)
-                    lips  = float(ltf["lips_off"]  or 0)
+                if ltf.get("jaw") is not None:
+                    jaw   = float(ltf["jaw"]   or 0)
+                    teeth = float(ltf["teeth"] or 0)
+                    lips  = float(ltf["lips"]  or 0)
+                    jaw_off   = float(ltf.get("jaw_off",   jaw)   or jaw)
+                    teeth_off = float(ltf.get("teeth_off", teeth) or teeth)
+                    lips_off  = float(ltf.get("lips_off",  lips)  or lips)
+                    spread_pct = (lips_off - jaw_off) / jaw_off * 100 if jaw_off else 0.0
                     alligator_entry: dict = {
                         "jaw":        jaw,
                         "teeth":      teeth,
                         "lips":       lips,
-                        "bullish":    lips > teeth > jaw and float(ltf.get("spread_pct", 0) or 0) >= MIN_ALLIGATOR_SPREAD_PCT,
-                        "spread_pct": float(ltf.get("spread_pct", 0) or 0),
+                        "bullish":    lips_off > teeth_off > jaw_off and spread_pct >= MIN_ALLIGATOR_SPREAD_PCT,
+                        "spread_pct": round(spread_pct, 4),
                     }
                     if result.get("alligator_seed"):
                         alligator_entry["seed"] = result["alligator_seed"]
@@ -311,7 +315,24 @@ def _scan_pair_incremental(
                 # Update stored alligator + seed (and exchange) for next incremental scan
                 new_seed = result.get("alligator_seed")
                 if new_seed:
-                    alligator_entry: dict = {**ltf_alligator, "seed": new_seed}
+                    first_candle = (result.get("conditions_json") or [{}])[0]
+                    ltf_cond = first_candle.get("ltf", {})
+                    jaw   = float(ltf_cond.get("jaw",   ltf_alligator.get("jaw",   0)) or 0)
+                    teeth = float(ltf_cond.get("teeth", ltf_alligator.get("teeth", 0)) or 0)
+                    lips  = float(ltf_cond.get("lips",  ltf_alligator.get("lips",  0)) or 0)
+                    jaw_off   = float(ltf_cond.get("jaw_off",   new_seed.get("jaw_smma",   jaw))   or jaw)
+                    teeth_off = float(ltf_cond.get("teeth_off", new_seed.get("teeth_smma", teeth)) or teeth)
+                    lips_off  = float(ltf_cond.get("lips_off",  new_seed.get("lips_smma",  lips))  or lips)
+                    spread_pct = (lips_off - jaw_off) / jaw_off * 100 if jaw_off else 0.0
+                    alligator_entry: dict = {
+                        **ltf_alligator,
+                        "jaw":        jaw,
+                        "teeth":      teeth,
+                        "lips":       lips,
+                        "bullish":    lips_off > teeth_off > jaw_off and spread_pct >= MIN_ALLIGATOR_SPREAD_PCT,
+                        "spread_pct": round(spread_pct, 4),
+                        "seed":       new_seed,
+                    }
                     repo.update_screener_result_alligator(
                         result_id,
                         {tf: alligator_entry},
@@ -347,8 +368,8 @@ def main() -> None:
                         help=f"Min bullish TFs required from screener (default: {DEFAULT_MIN_BULLISH_TFS})")
     parser.add_argument("--screener-run-id", type=int, default=None,
                         help="Load qualified pairs from this screener_run DB row (skips screener)")
-    parser.add_argument("--screener-result-id", type=int, default=None,
-                        help="Scan a single pair by screener_result DB row id (used by per-pair jobs)")
+    parser.add_argument("--screener-pair-id", type=int, default=None,
+                        help="Scan a single pair by screener_pair DB row id (used by per-pair jobs)")
     parser.add_argument("--progressive", action="store_true",
                         help="Incremental scan: fetch only recent candles using stored SMMA/HA seeds")
     parser.add_argument("--lookback", type=int, default=1,
@@ -378,7 +399,7 @@ def main() -> None:
     if args.screener_pair_id:
         row = repo.load_pair_by_result_id(args.screener_pair_id)
         if not row:
-            print(f"No screener_result found with id={args.screener_pair_id}")
+            print(f"No screener_pair found with id={args.screener_pair_id}")
             sys.exit(1)
         ticker = _make_ticker_from_db(row)
         scan_fn = _scan_pair_incremental if args.progressive else _scan_pair_with_candle_reuse
@@ -519,16 +540,20 @@ def main() -> None:
                     if result_id:
                         first_candle = (result.get("conditions_json") or [{}])[0]
                         ltf = first_candle.get("ltf", {})
-                        if ltf.get("jaw_off") is not None:
-                            jaw   = float(ltf["jaw_off"]   or 0)
-                            teeth = float(ltf["teeth_off"] or 0)
-                            lips  = float(ltf["lips_off"]  or 0)
+                        if ltf.get("jaw") is not None:
+                            jaw   = float(ltf["jaw"]   or 0)
+                            teeth = float(ltf["teeth"] or 0)
+                            lips  = float(ltf["lips"]  or 0)
+                            jaw_off   = float(ltf.get("jaw_off",   jaw)   or jaw)
+                            teeth_off = float(ltf.get("teeth_off", teeth) or teeth)
+                            lips_off  = float(ltf.get("lips_off",  lips)  or lips)
+                            spread_pct = (lips_off - jaw_off) / jaw_off * 100 if jaw_off else 0.0
                             alligator_entry: dict = {
                                 "jaw":        jaw,
                                 "teeth":      teeth,
                                 "lips":       lips,
-                                "bullish":    lips > teeth > jaw and float(ltf.get("spread_pct", 0) or 0) >= MIN_ALLIGATOR_SPREAD_PCT,
-                                "spread_pct": float(ltf.get("spread_pct", 0) or 0),
+                                "bullish":    lips_off > teeth_off > jaw_off and spread_pct >= MIN_ALLIGATOR_SPREAD_PCT,
+                                "spread_pct": round(spread_pct, 4),
                             }
                             if result.get("alligator_seed"):
                                 alligator_entry["seed"] = result["alligator_seed"]

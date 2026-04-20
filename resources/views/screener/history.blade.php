@@ -26,8 +26,8 @@
                 <tr class="border-b border-gray-800/50 hover:bg-gray-800/30 cursor-pointer"
                     onclick="window.location='{{ route('screener.show', $run) }}'">
                     <td class="px-4 py-2 text-gray-600">{{ $run->id }}</td>
-                    <td class="px-4 py-2 text-gray-400">{{ $run->started_at->format('M d, Y g:i A') }}</td>
-                    <td class="px-4 py-2 text-gray-500">{{ $run->finished_at?->format('g:i A') ?? '—' }}</td>
+                    <td class="px-4 py-2 text-gray-400"><x-timestamp :value="$run->started_at" format="M d, Y g:i A" /></td>
+                    <td class="px-4 py-2 text-gray-500"><x-timestamp :value="$run->finished_at" format="g:i A" /></td>
                     <td class="px-4 py-2"><x-exchange-badge :exchange="$run->filters_json['exchange'] ?? null" /></td>
                     <td class="px-4 py-2 text-gray-500">{{ $run->data_source }}</td>
                     <td class="px-4 py-2 text-right text-gray-400">{{ $run->total_scanned }}</td>

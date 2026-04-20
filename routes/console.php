@@ -12,10 +12,6 @@ Schedule::command('health:schedule-check-heartbeat')->everyMinute();
 Schedule::command('health:queue-check-heartbeat')->everyMinute();
 Schedule::command('health:check')->everyFiveMinutes();
 
-Schedule::command('trading:scan-signals')
-    ->everyFifteenMinutes()
-    ->appendOutputTo(storage_path('logs/scanner.log'));
+Schedule::command('trading:scan-signals')->everyFifteenMinutes();
 
-Schedule::command('trading:track-signals')
-    ->everyFiveMinutes()
-    ->appendOutputTo(storage_path('logs/tracker.log'));
+Schedule::command('trading:track-signals')->everyFiveMinutes();

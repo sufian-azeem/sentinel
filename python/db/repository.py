@@ -327,17 +327,18 @@ def create_signal(scan_id: int, result: dict) -> int:
                 """
                 INSERT INTO signals
                     (pair_scan_id, pair, timeframe, strategy,
-                     entry_type, entry_price, sl_price, tp1_price, tp2_price,
+                     entry_type, reason, entry_price, sl_price, tp1_price, tp2_price,
                      risk_pct, candle_time, candles_ago,
                      screener_score, confluence, conditions_json,
                      status, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'active', NOW())
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'active', NOW())
                 """,
                 (
                     scan_id,
                     result.get("pair", ""),
                     result.get("alligator_tf", ""),
                     "cwt",
+                    result.get("entry_type", ""),
                     result.get("reason", ""),
                     entry_price,
                     sl_price or None,

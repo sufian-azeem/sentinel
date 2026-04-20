@@ -26,7 +26,6 @@ class ScreenerRun extends Model
         'filters_json' => 'array',
         'started_at' => 'datetime',
         'finished_at' => 'datetime',
-        'created_at' => 'datetime',
     ];
 
     public function scopeCompleted($query): void

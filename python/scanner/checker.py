@@ -228,6 +228,7 @@ def check_signal(
                 "tp1_price":   signal.tp1_price,
                 "tp2_price":   signal.tp2_price,
                 "reason":      signal.reason,
+                "entry_type":  signal.entry_type or "",
                 "candles_ago": offset - 1,
             })
         elif verbose:
@@ -262,6 +263,7 @@ def check_signal(
         "tp1_price":           best["tp1_price"],
         "tp2_price":           best["tp2_price"],
         "reason":              best["reason"],
+        "entry_type":          best["entry_type"],
         "risk_pct":            round(risk_pct, 4),
         "all_hits":            len(hits),
         "candles_fetched":     len(df),
