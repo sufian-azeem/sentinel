@@ -207,6 +207,7 @@ def _scan_pair_incremental(
     exchange: str,
     lookback: int,
     verbose: bool,
+    tfs_to_scan: list[str] | None = None,
 ) -> list[dict]:
     """
     Progressive scan: fetch only INCREMENTAL_CANDLES per TF and seed
@@ -218,8 +219,10 @@ def _scan_pair_incremental(
     """
     import time as _time
 
+    active_tfs = tfs_to_scan if tfs_to_scan else SCAN_TFS
+
     # Verify all seeds are available before committing to incremental mode
-    for tf in SCAN_TFS:
+    for tf in active_tfs:
         alligator = (tf_data.get(tf) or {}).get("alligator") or {}
         if not alligator.get("seed"):
             print(f"  [{ticker.pair}] no seed for {tf} — falling back to full scan")
@@ -231,7 +234,7 @@ def _scan_pair_incremental(
     # Fetch a small window of recent candles for each TF
     candles: dict[str, object] = {}
     candle_exchange: dict[str, str] = {}  # tracks which exchange actually supplied data per TF
-    for tf in SCAN_TFS:
+    for tf in active_tfs:
         cfg        = TF_CONFIG[tf]
         ccxt_tf    = cfg["ccxt_tf"]
         start_date = _start_date_for_tf(ccxt_tf, INCREMENTAL_CANDLES)
@@ -254,7 +257,7 @@ def _scan_pair_incremental(
         _time.sleep(0.1)  # incremental: small window, no need for long delay
 
     all_results: list[dict] = []
-    for tf in SCAN_TFS:
+    for tf in active_tfs:
         ticker.alligator_tf = tf
         scan_id = None
         try:
@@ -372,6 +375,8 @@ def main() -> None:
                         help="Scan a single pair by screener_pair DB row id (used by per-pair jobs)")
     parser.add_argument("--progressive", action="store_true",
                         help="Incremental scan: fetch only recent candles using stored SMMA/HA seeds")
+    parser.add_argument("--tfs", nargs="+", default=None,
+                        help="Timeframes to scan (default: all). E.g. --tfs 15M 1H")
     parser.add_argument("--lookback", type=int, default=1,
                         help="Number of recent closed candles to check per pair (default: 1)")
     parser.add_argument("--verbose", "-v", action="store_true",
@@ -413,6 +418,8 @@ def main() -> None:
         )
         if args.progressive:
             kwargs["tf_data"] = row.get("tf_data_json") or {}
+            if args.tfs:
+                kwargs["tfs_to_scan"] = [t.upper() for t in args.tfs]
         signals = scan_fn(**kwargs)
         print_signals([r for r in signals if r.get("signal_found")])
         return

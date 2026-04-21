@@ -43,7 +43,13 @@
                     Health
                 </a>
             </div>
-            <div class="ml-auto text-xs text-gray-600"><x-timestamp :value="now()" format="M d, Y g:i A" /> {{ now(config('app.timezone'))->format('T') }}</div>
+            <div class="ml-auto flex items-center gap-4">
+                <div class="text-xs text-gray-600"><x-timestamp :value="now()" format="M d, Y g:i A" /> {{ now(config('app.timezone'))->format('T') }}</div>
+                <form method="POST" action="{{ route('logout') }}">
+                    @csrf
+                    <button type="submit" class="text-xs text-gray-500 hover:text-gray-300 transition-colors">Logout</button>
+                </form>
+            </div>
         </div>
     </nav>
 

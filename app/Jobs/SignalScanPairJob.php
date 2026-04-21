@@ -25,6 +25,7 @@ class SignalScanPairJob implements ShouldQueue
         public readonly string $exchange,
         public readonly int $lookback,
         public readonly bool $progressive = false,
+        public readonly ?array $tfs = null,
     ) {}
 
     public function handle(): void
@@ -40,6 +41,10 @@ class SignalScanPairJob implements ShouldQueue
 
         if ($this->progressive) {
             $command[] = '--progressive';
+        }
+
+        if ($this->tfs !== null) {
+            array_push($command, '--tfs', ...$this->tfs);
         }
 
         $process = new Process($command, base_path('python'), timeout: $this->timeout);
@@ -69,6 +74,7 @@ class SignalScanPairJob implements ShouldQueue
             'pair_id' => $this->screenerPairId,
             'exchange' => $this->exchange,
             'mode' => $this->progressive ? 'progressive' : 'full',
+            'tfs' => $this->tfs ? implode(' ', $this->tfs) : 'all',
         ];
 
         $log = Log::channel('scanner');

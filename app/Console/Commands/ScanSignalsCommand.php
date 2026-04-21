@@ -7,6 +7,7 @@ use App\Models\PairScan;
 use App\Models\ScreenerPair;
 use App\Models\ScreenerRun;
 use App\Models\Signal;
+use App\Scanner\TfScanResolver;
 use Illuminate\Console\Command;
 
 class ScanSignalsCommand extends Command
@@ -66,6 +67,14 @@ class ScanSignalsCommand extends Command
 
                 $hasExistingScan = PairScan::where('screener_pair_id', $pair->id)->exists();
 
+                $tfsToScan = null;
+                if ($hasExistingScan) {
+                    $tfsToScan = (new TfScanResolver)->resolve($pair->tf_data_json ?? []);
+                    if (empty($tfsToScan)) {
+                        continue;
+                    }
+                }
+
                 // Delete stale scans without signals before fresh scan
                 PairScan::where('screener_pair_id', $pair->id)
                     ->whereNotIn('id', Signal::select('pair_scan_id'))
@@ -77,6 +86,7 @@ class ScanSignalsCommand extends Command
                     $exchange,
                     $lookback,
                     progressive: $hasExistingScan,
+                    tfs: $tfsToScan,
                 );
 
                 $dispatched++;
