@@ -42,6 +42,10 @@
                    class="px-3 py-1 rounded text-xs {{ request()->routeIs('health') ? 'bg-emerald-500/20 text-emerald-400' : 'text-gray-400 hover:text-gray-200' }}">
                     Health
                 </a>
+                <a href="{{ route('log-viewer.index') }}"
+                   class="px-3 py-1 rounded text-xs {{ request()->routeIs('log-viewer.*') ? 'bg-emerald-500/20 text-emerald-400' : 'text-gray-400 hover:text-gray-200' }}">
+                    Logs
+                </a>
             </div>
             <div class="ml-auto flex items-center gap-4">
                 <div class="text-xs text-gray-600"><x-timestamp :value="now()" format="M d, Y g:i A" /> {{ now(config('app.timezone'))->format('T') }}</div>
