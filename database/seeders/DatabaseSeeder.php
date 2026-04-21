@@ -13,8 +13,8 @@ class DatabaseSeeder extends Seeder
 
     public function run(): void
     {
-        $email = env('ADMIN_EMAIL', 'admin@example.com');
-        $password = env('ADMIN_PASSWORD', 'password');
+        $email = config('trading.admin.email');
+        $password = config('trading.admin.password');
 
         User::updateOrCreate(
             ['email' => $email],

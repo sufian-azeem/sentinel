@@ -225,6 +225,7 @@ sudo -u "$APP_USER" composer install --no-dev --optimize-autoloader --quiet
 
 # Node build
 npm ci --prefix "$APP_DIR" --silent
+chmod +x "$APP_DIR/node_modules/vite/bin/vite.js"
 npm run build --prefix "$APP_DIR"
 
 # Generate app key if not set
@@ -360,6 +361,29 @@ supervisorctl reread
 supervisorctl update
 supervisorctl start all
 info "Supervisor programs started"
+
+# ────────────────────────────────────────────────────────────────────────
+section "Deploy alias"
+# ────────────────────────────────────────────────────────────────────────
+cat >> /root/.bashrc << 'BASHRC'
+
+alias clcache='cd /var/www/sentinel && \
+  git pull && \
+  chgrp -R www-data storage bootstrap/cache && \
+  chmod -R ug+rwx storage bootstrap/cache && \
+  sudo -u www-data composer install --no-dev --optimize-autoloader && \
+  npm ci && \
+  chmod +x node_modules/vite/bin/vite.js && \
+  npm run build && \
+  php artisan migrate --force && \
+  php artisan config:cache && \
+  php artisan route:cache && \
+  php artisan view:cache && \
+  php artisan optimize && \
+  supervisorctl restart all && \
+  echo "Done."'
+BASHRC
+info "Added 'clcache' alias to /root/.bashrc"
 
 # ────────────────────────────────────────────────────────────────────────
 section "Logrotate"

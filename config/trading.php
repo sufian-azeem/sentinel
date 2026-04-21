@@ -44,4 +44,9 @@ return [
         'lookback' => env('TRADING_SCANNER_LOOKBACK', 1),
     ],
 
+    'admin' => [
+        'email' => env('ADMIN_EMAIL', 'admin@example.com'),
+        'password' => env('ADMIN_PASSWORD', 'password'),
+    ],
+
 ];
