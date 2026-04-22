@@ -6,6 +6,7 @@ Re-exports all public repository functions so callers can simply do:
     repo.create_screener_run(...)
 """
 
+from db.connection import get_persistent_connection
 from db.repository import (
     create_screener_run,
     complete_screener_run,
@@ -21,6 +22,7 @@ from db.repository import (
 )
 
 __all__ = [
+    "get_persistent_connection",
     "create_screener_run",
     "complete_screener_run",
     "fail_screener_run",

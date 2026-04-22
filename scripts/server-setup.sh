@@ -26,7 +26,7 @@ else
     DB_PASS="$(openssl rand -base64 20 | tr -d '/+=' | head -c 24)"
 fi
 
-WORKER_COUNT=4
+WORKER_COUNT=2
 APP_TIMEZONE="Asia/Karachi"
 APP_TIMEZONE_OFFSET="+05:00"
 
@@ -47,6 +47,20 @@ section() { echo -e "\n${CYAN}━━━  $1  ━━━${NC}"; }
 [[ -z "$REPO_URL" ]]        && error "Set REPO_URL in the CONFIG section."
 [[ -z "$ADMIN_EMAIL" ]]     && error "Set ADMIN_EMAIL in the CONFIG section."
 [[ -z "$ADMIN_PASSWORD" ]]  && error "Set ADMIN_PASSWORD in the CONFIG section."
+
+# ────────────────────────────────────────────────────────────────────────
+section "Swap (1GB)"
+# ────────────────────────────────────────────────────────────────────────
+if [[ ! -f /swapfile ]]; then
+    fallocate -l 1G /swapfile
+    chmod 600 /swapfile
+    mkswap /swapfile
+    swapon /swapfile
+    echo '/swapfile none swap sw 0 0' >> /etc/fstab
+    info "1GB swap created"
+else
+    warn "Swap already exists — skipping"
+fi
 
 # ────────────────────────────────────────────────────────────────────────
 section "System update"

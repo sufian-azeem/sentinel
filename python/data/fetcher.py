@@ -23,7 +23,13 @@ TIMEFRAME_MS = {
 }
 
 
+_EXCHANGE_CACHE: dict[str, ccxt.Exchange] = {}
+
+
 def get_exchange(name: str) -> ccxt.Exchange:
+    if name in _EXCHANGE_CACHE:
+        return _EXCHANGE_CACHE[name]
+
     if name not in ccxt.exchanges:
         raise ValueError(f"Exchange '{name}' not supported by ccxt")
 
@@ -34,7 +40,9 @@ def get_exchange(name: str) -> ccxt.Exchange:
     if name == "hyperliquid":
         options["walletAddress"] = "0x0000000000000000000000000000000000000000"
 
-    return getattr(ccxt, name)(options)
+    ex = getattr(ccxt, name)(options)
+    _EXCHANGE_CACHE[name] = ex
+    return ex
 
 
 def fetch_candles(

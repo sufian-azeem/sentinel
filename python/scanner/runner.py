@@ -6,7 +6,9 @@ for active Alligator BUY signals.
 """
 
 import argparse
+import json
 import sys
+import time as _time
 
 import db as repo
 from screener.loader import fetch_screener_data, load_screener_data, SCREENER_URL
@@ -379,9 +381,60 @@ def main() -> None:
                         help="Timeframes to scan (default: all). E.g. --tfs 15M 1H")
     parser.add_argument("--lookback", type=int, default=1,
                         help="Number of recent closed candles to check per pair (default: 1)")
+    parser.add_argument("--batch", type=str, default=None,
+                        help="Path to JSON file with batch of pair specs (used by SignalScanBatchJob)")
     parser.add_argument("--verbose", "-v", action="store_true",
                         help="Show per-candle breakdown of every condition")
     args = parser.parse_args()
+
+    # ── Batch mode — invoked by SignalScanBatchJob (one process per N pairs) ─
+    if args.batch:
+        with open(args.batch) as f:
+            batch: list[dict] = json.load(f)
+
+        conn = repo.get_persistent_connection()
+        batch_start = _time.monotonic()
+        try:
+            for i, spec in enumerate(batch, 1):
+                pair_id = spec["id"]
+                pair_label = spec.get("pair", str(pair_id))
+                row = repo.load_pair_by_result_id(pair_id, conn=conn)
+                if not row:
+                    print(f"  [skip] no screener_pair id={pair_id}")
+                    continue
+
+                ticker = _make_ticker_from_db(row)
+                scan_fn = _scan_pair_incremental if spec.get("progressive") else _scan_pair_with_candle_reuse
+                kwargs: dict = dict(
+                    ticker=ticker,
+                    run_id=row["screener_run_id"],
+                    result_id=row["screener_pair_id"],
+                    exchange=args.exchange,
+                    lookback=args.lookback,
+                    verbose=False,
+                )
+                if spec.get("progressive"):
+                    kwargs["tf_data"] = row.get("tf_data_json") or {}
+                    if spec.get("tfs"):
+                        kwargs["tfs_to_scan"] = [t.upper() for t in spec["tfs"]]
+
+                pair_start = _time.monotonic()
+                try:
+                    signals = scan_fn(**kwargs)
+                    elapsed = round(_time.monotonic() - pair_start, 2)
+                    found = [r for r in signals if r.get("signal_found")]
+                    status = f"SIGNAL x{len(found)}" if found else "ok"
+                    print(f"  [{i}/{len(batch)}] {pair_label} — {elapsed}s — {status}")
+                    if found:
+                        print_signals(found)
+                except Exception as e:
+                    elapsed = round(_time.monotonic() - pair_start, 2)
+                    print(f"  [{i}/{len(batch)}] {pair_label} — {elapsed}s — ERROR: {e}")
+        finally:
+            total = round(_time.monotonic() - batch_start, 2)
+            print(f"  batch done — {len(batch)} pairs in {total}s")
+            conn.close()
+        return
 
     # ── Direct pair mode — skips screener ─────────────────────────────────
     if args.pair:

@@ -18,6 +18,11 @@ def _load_env() -> dict:
     return dotenv_values(env_path)
 
 
+def get_persistent_connection() -> pymysql.Connection:
+    """Return a connection whose lifecycle the caller fully manages (batch mode)."""
+    return get_connection()
+
+
 def get_connection() -> pymysql.Connection:
     """Return a new pymysql connection. Caller is responsible for closing it."""
     env = _load_env()

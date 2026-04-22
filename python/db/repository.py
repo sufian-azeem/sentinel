@@ -196,9 +196,14 @@ def load_qualified_pairs(screener_run_id: int, top_n: int) -> list[dict]:
         conn.close()
 
 
-def load_pair_by_result_id(result_id: int) -> dict | None:
-    """Load a single screener pair by its id (used by per-pair scanner jobs)."""
-    conn = get_connection()
+def load_pair_by_result_id(result_id: int, conn=None) -> dict | None:
+    """Load a single screener pair by its id (used by per-pair scanner jobs).
+
+    Pass an existing ``conn`` to reuse a connection across calls (batch mode).
+    """
+    owned = conn is None
+    if owned:
+        conn = get_connection()
     try:
         with conn.cursor() as cur:
             cur.execute(
@@ -214,17 +219,18 @@ def load_pair_by_result_id(result_id: int) -> dict | None:
             return None
         return {
             "screener_pair_id": row[0],
-            "screener_run_id":    row[1],
-            "pair":               row[2],
-            "alligator_tf":       row[3],
-            "price":              float(row[4]),
-            "score":              float(row[5]),
-            "confluence":         row[6] or "",
-            "rvol":               float(row[7]),
-            "tf_data_json":       json.loads(row[8]) if row[8] else {},
+            "screener_run_id":  row[1],
+            "pair":             row[2],
+            "alligator_tf":     row[3],
+            "price":            float(row[4]),
+            "score":            float(row[5]),
+            "confluence":       row[6] or "",
+            "rvol":             float(row[7]),
+            "tf_data_json":     json.loads(row[8]) if row[8] else {},
         }
     finally:
-        conn.close()
+        if owned:
+            conn.close()
 
 
 # ---------------------------------------------------------------------------

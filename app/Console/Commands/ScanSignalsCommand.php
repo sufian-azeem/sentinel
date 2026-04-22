@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Jobs\SignalScanPairJob;
+use App\Jobs\SignalScanBatchJob;
 use App\Models\PairScan;
 use App\Models\ScreenerPair;
 use App\Models\ScreenerRun;
@@ -15,6 +15,8 @@ class ScanSignalsCommand extends Command
     protected $signature = 'trading:scan-signals {--run= : Scan a specific run ID (ignores expiry)}';
 
     protected $description = 'Progressively scan qualified pairs for signals across all active (non-expired) screener runs';
+
+    private const int BATCH_SIZE = 10;
 
     public function handle(): int
     {
@@ -51,7 +53,7 @@ class ScanSignalsCommand extends Command
                 continue;
             }
 
-            $dispatched = 0;
+            $batchPairs = [];
             $skipped = 0;
 
             foreach ($pairs as $pair) {
@@ -80,19 +82,21 @@ class ScanSignalsCommand extends Command
                     ->whereNotIn('id', Signal::select('pair_scan_id'))
                     ->delete();
 
-                SignalScanPairJob::dispatch(
-                    $pair->id,
-                    $pair->pair,
-                    $exchange,
-                    $lookback,
-                    progressive: $hasExistingScan,
-                    tfs: $tfsToScan,
-                );
-
-                $dispatched++;
+                $batchPairs[] = [
+                    'id' => $pair->id,
+                    'pair' => $pair->pair,
+                    'progressive' => $hasExistingScan,
+                    'tfs' => $tfsToScan,
+                ];
             }
 
-            $this->info("Run #{$run->id} ({$exchange}) — dispatched {$dispatched}, skipped {$skipped} (active signal)");
+            $chunks = array_chunk($batchPairs, self::BATCH_SIZE);
+            foreach ($chunks as $chunk) {
+                SignalScanBatchJob::dispatch($exchange, $lookback, $chunk);
+            }
+
+            $dispatched = count($batchPairs);
+            $this->info("Run #{$run->id} ({$exchange}) — dispatched {$dispatched} pairs in ".count($chunks).' batch(es), skipped '.$skipped.' (active signal)');
             $totalDispatched += $dispatched;
             $totalSkipped += $skipped;
         }
