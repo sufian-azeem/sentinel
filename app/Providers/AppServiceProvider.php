@@ -15,5 +15,6 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(CheckEndedEvent::class, NotifyHealthCheckFailed::class);
 
         Gate::define('viewPulse', fn ($user = null) => true);
+        Gate::define('viewLogViewer', fn ($user = null) => true);
     }
 }
