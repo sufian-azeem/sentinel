@@ -339,7 +339,7 @@ directory=${APP_DIR}
 user=${APP_USER}
 environment=PATH="/opt/sentinel-venv/bin:%(ENV_PATH)s"
 numprocs=${WORKER_COUNT}
-process_name=%(program_name)s_%(process_num)02d
+process_name=%(process_num)02d
 autostart=true
 autorestart=true
 stopwaitsecs=300
