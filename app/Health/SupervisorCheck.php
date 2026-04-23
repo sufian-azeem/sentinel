@@ -24,8 +24,7 @@ class SupervisorCheck extends Check
         $statuses = [];
         foreach (explode("\n", $output) as $line) {
             if (preg_match('/^(\S+)\s+(\S+)/', trim($line), $m)) {
-                $name = str_contains($m[1], ':') ? explode(':', $m[1])[1] : $m[1];
-                $statuses[$name] = $m[2];
+                $statuses[$m[1]] = $m[2];
             }
         }
 
