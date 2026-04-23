@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -40,9 +41,17 @@ class Signal extends Model
         'risk_pct' => 'decimal:4',
         'screener_score' => 'decimal:6',
         'conditions_json' => 'array',
-        'candle_time' => 'datetime:Y-m-d H:i:s',
         'created_at' => 'datetime',
     ];
+
+    public function getCandleTimeAttribute(?string $value): ?Carbon
+    {
+        if (! $value) {
+            return null;
+        }
+
+        return Carbon::parse($value, 'UTC')->setTimezone(config('app.timezone'));
+    }
 
     public function scopeActive(Builder $query): void
     {

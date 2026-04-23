@@ -15,3 +15,14 @@ Schedule::command('health:check')->everyFiveMinutes();
 Schedule::command('trading:scan-signals')->everyFifteenMinutes();
 
 Schedule::command('trading:track-signals')->everyFiveMinutes();
+
+Schedule::call(function () {
+    $log = storage_path('logs/worker.log');
+    if (! file_exists($log) || filesize($log) === 0) {
+        return;
+    }
+    $dated = storage_path('logs/worker-' . now()->subDay()->format('Y-m-d') . '.log');
+    rename($log, $dated);
+    touch($log);
+    chmod($log, 0664);
+})->daily()->name('rotate-worker-log')->withoutOverlapping();

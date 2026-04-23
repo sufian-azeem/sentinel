@@ -403,18 +403,21 @@ info "Added 'clcache' alias to /root/.bashrc"
 section "Logrotate"
 # ────────────────────────────────────────────────────────────────────────
 cat > /etc/logrotate.d/sentinel <<'LOGROTATE'
-/var/www/sentinel/storage/logs/*.log {
+# worker.log is rotated daily by Laravel's scheduler — not managed here
+
+# All other logs — standard rotation
+/var/www/sentinel/storage/logs/scheduler.log
+/var/www/sentinel/storage/logs/pulse.log
+/var/www/sentinel/storage/logs/laravel.log {
     daily
     missingok
     rotate 14
     compress
     delaycompress
     notifempty
-    create 664 www-data www-data
-    sharedscripts
-    postrotate
-        supervisorctl restart worker:* health-worker scheduler pulse > /dev/null 2>&1 || true
-    endscript
+    dateext
+    dateformat -%Y-%m-%d
+    copytruncate
 }
 LOGROTATE
 

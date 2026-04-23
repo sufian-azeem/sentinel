@@ -15,6 +15,8 @@ class RunPipelineJob implements ShouldQueue
 
     public int $tries = 1;
 
+    private const int BATCH_SIZE = 10;
+
     public function __construct(
         public readonly int $screenerRunId,
         public readonly string $exchange,
@@ -24,25 +26,26 @@ class RunPipelineJob implements ShouldQueue
 
     public function handle(): void
     {
-        // Clear previous pair_scans for this run so re-runs don't accumulate stale scans
-        $pairIds = ScreenerPair::where('screener_run_id', $this->screenerRunId)
-            ->qualified()
-            ->pluck('id');
-
-        PairScan::whereIn('screener_pair_id', $pairIds)->delete();
-
-        // Dispatch one per-pair job per qualified result (up to $top)
-        ScreenerPair::where('screener_run_id', $this->screenerRunId)
+        $pairs = ScreenerPair::where('screener_run_id', $this->screenerRunId)
             ->qualified()
             ->orderByDesc('score')
             ->limit($this->top)
-            ->each(function (ScreenerPair $result): void {
-                SignalScanPairJob::dispatch(
-                    $result->id,
-                    $result->pair,
-                    $this->exchange,
-                    $this->lookback,
-                );
-            });
+            ->get();
+
+        $pairIds = $pairs->pluck('id');
+
+        // Clear previous pair_scans so re-runs don't accumulate stale scans
+        PairScan::whereIn('screener_pair_id', $pairIds)->delete();
+
+        $batchPairs = $pairs->map(fn (ScreenerPair $pair) => [
+            'id' => $pair->id,
+            'pair' => $pair->pair,
+            'progressive' => false,
+            'tfs' => null,
+        ])->all();
+
+        foreach (array_chunk($batchPairs, self::BATCH_SIZE) as $chunk) {
+            SignalScanBatchJob::dispatch($this->exchange, $this->lookback, $chunk);
+        }
     }
 }
