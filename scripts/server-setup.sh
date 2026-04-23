@@ -316,7 +316,7 @@ info "Nginx configured for ${APP_DOMAIN}"
 section "Supervisor (workers + scheduler)"
 # ────────────────────────────────────────────────────────────────────────
 cat > /etc/supervisor/conf.d/sentinel.conf <<SUPERVISOR
-[program:worker]
+[program:sentinel-worker]
 command=php ${APP_DIR}/artisan queue:work --sleep=3 --tries=3 --timeout=300
 directory=${APP_DIR}
 user=${APP_USER}
@@ -332,7 +332,7 @@ stdout_logfile_backups=3
 stderr_logfile=${APP_DIR}/storage/logs/worker.log
 stderr_logfile_maxbytes=0
 
-[program:health-worker]
+[program:sentinel-health-worker]
 command=php ${APP_DIR}/artisan queue:work --queue=health --sleep=3 --tries=3 --timeout=30
 directory=${APP_DIR}
 user=${APP_USER}
@@ -345,7 +345,7 @@ stdout_logfile_backups=3
 stderr_logfile=${APP_DIR}/storage/logs/worker.log
 stderr_logfile_maxbytes=0
 
-[program:scheduler]
+[program:sentinel-scheduler]
 command=php ${APP_DIR}/artisan schedule:work
 directory=${APP_DIR}
 user=${APP_USER}
@@ -358,7 +358,7 @@ stdout_logfile_backups=3
 stderr_logfile=${APP_DIR}/storage/logs/scheduler.log
 stderr_logfile_maxbytes=0
 
-[program:pulse]
+[program:sentinel-pulse]
 command=php ${APP_DIR}/artisan pulse:check
 directory=${APP_DIR}
 user=${APP_USER}
@@ -394,7 +394,7 @@ alias clcache='cd /var/www/sentinel && \
   php artisan route:cache && \
   php artisan view:cache && \
   php artisan optimize && \
-  supervisorctl restart all && \
+  supervisorctl restart sentinel-worker:* sentinel-health-worker sentinel-scheduler sentinel-pulse && \
   echo "Done."'
 BASHRC
 info "Added 'clcache' alias to /root/.bashrc"

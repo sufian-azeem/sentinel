@@ -24,19 +24,35 @@ class SupervisorCheck extends Check
         $statuses = [];
         foreach (explode("\n", $output) as $line) {
             if (preg_match('/^(\S+)\s+(\S+)/', trim($line), $m)) {
-                $statuses[$m[1]] = $m[2];
+                $name = str_contains($m[1], ':') ? explode(':', $m[1])[1] : $m[1];
+                $statuses[$name] = $m[2];
             }
         }
 
-        $failed = array_filter(
-            $this->programs,
-            fn ($p) => ($statuses[$p] ?? '') !== 'RUNNING',
-        );
+        $failed = [];
+        foreach ($this->programs as $pattern) {
+            $matched = array_filter(
+                array_keys($statuses),
+                fn ($name) => fnmatch($pattern, $name),
+            );
+
+            if (empty($matched)) {
+                $failed[] = $pattern.' (no processes found)';
+
+                continue;
+            }
+
+            foreach ($matched as $name) {
+                if ($statuses[$name] !== 'RUNNING') {
+                    $failed[] = $name;
+                }
+            }
+        }
 
         if (! empty($failed)) {
             return Result::make()->failed('Not running: '.implode(', ', $failed));
         }
 
-        return Result::make()->ok(count($this->programs).' process(es) running');
+        return Result::make()->ok(count($statuses).' process(es) running');
     }
 }

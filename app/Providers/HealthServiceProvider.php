@@ -21,7 +21,7 @@ class HealthServiceProvider extends ServiceProvider
             QueueCheck::new()->onQueue('health'),
             SupervisorCheck::new()
                 ->label('Queue Workers')
-                ->programs('queue-worker_00', 'queue-worker_01', 'health-worker'),
+                ->programs('sentinel-*'),
         ]);
     }
 }
