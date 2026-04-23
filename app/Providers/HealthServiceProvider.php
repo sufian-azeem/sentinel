@@ -21,7 +21,7 @@ class HealthServiceProvider extends ServiceProvider
             QueueCheck::new()->onQueue('health'),
             SupervisorCheck::new()
                 ->label('Queue Workers')
-                ->programs('queue-worker-1', 'queue-worker-2', 'queue-worker-3', 'queue-worker-4'),
+                ->programs('queue-worker_00', 'queue-worker_01', 'health-worker'),
         ]);
     }
 }

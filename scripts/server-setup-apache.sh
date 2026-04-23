@@ -333,7 +333,7 @@ info "Apache reloaded"
 section "Supervisor"
 # ────────────────────────────────────────────────────────────────────────
 cat > /etc/supervisor/conf.d/sentinel.conf <<SUPERVISOR
-[program:sentinel-worker]
+[program:queue-worker]
 command=php ${APP_DIR}/artisan queue:work --sleep=3 --tries=3 --timeout=300
 directory=${APP_DIR}
 user=${APP_USER}
@@ -349,7 +349,7 @@ stdout_logfile_backups=3
 stderr_logfile=${APP_DIR}/storage/logs/worker.log
 stderr_logfile_maxbytes=0
 
-[program:sentinel-health-worker]
+[program:health-worker]
 command=php ${APP_DIR}/artisan queue:work --queue=health --sleep=3 --tries=3 --timeout=30
 directory=${APP_DIR}
 user=${APP_USER}
@@ -412,7 +412,7 @@ alias clcache='cd /var/www/sentinel && \
   php artisan route:cache && \
   php artisan view:cache && \
   php artisan optimize && \
-  supervisorctl restart sentinel-worker:* sentinel-health-worker sentinel-scheduler sentinel-pulse && \
+  supervisorctl restart queue-worker:* health-worker sentinel-scheduler sentinel-pulse && \
   echo "Done."'
 
 # sentinel — artisan shortcut
