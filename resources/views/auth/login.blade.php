@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login — Crypto Signals</title>
+    <title>Login — Sentinel</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="h-full bg-gray-950 text-gray-100 font-mono flex items-center justify-center p-4">
@@ -13,7 +13,7 @@
         {{-- Header --}}
         <div class="text-center mb-8">
             <div class="text-3xl text-emerald-400 mb-3">⚡</div>
-            <h1 class="text-xl font-bold tracking-widest text-white uppercase">Crypto Signals</h1>
+            <h1 class="text-xl font-bold tracking-widest text-white uppercase">Sentinel</h1>
             <p class="text-gray-500 text-xs mt-1 tracking-wide">Sign in to your dashboard</p>
         </div>
 
