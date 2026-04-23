@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('signal_outcomes', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('signal_id')->constrained()->cascadeOnDelete();
+            $table->unsignedBigInteger('signal_id');
             $table->enum('status', ['tp1_hit', 'tp2_hit', 'sl_hit', 'breakeven', 'expired', 'manual_close']);
             $table->decimal('exit_price', 20, 8)->nullable();
             $table->dateTime('exit_time')->nullable();

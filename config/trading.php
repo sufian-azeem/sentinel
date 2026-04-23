@@ -27,6 +27,12 @@ return [
             'min_bullish_tfs' => env('TRADING_BINANCE_MIN_BULLISH_TFS', 3),
         ],
 
+        'mexc' => [
+            'min_volume' => env('TRADING_MEXC_MIN_VOLUME', 1_000_000),
+            'min_rvol' => env('TRADING_MEXC_MIN_RVOL', 0.4),
+            'min_bullish_tfs' => env('TRADING_MEXC_MIN_BULLISH_TFS', 3),
+        ],
+
     ],
 
     /*

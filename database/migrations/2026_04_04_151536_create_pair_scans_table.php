@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::create('pair_scans', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('screener_run_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('screener_pair_id')->nullable()->constrained('screener_pairs')->nullOnDelete();
+            $table->unsignedBigInteger('screener_run_id');
+            $table->unsignedBigInteger('screener_pair_id')->nullable();
             $table->string('pair', 20);
             $table->string('timeframe', 5);
             $table->string('exchange', 30);

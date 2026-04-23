@@ -83,10 +83,11 @@
                     {{-- Exchange --}}
                     <div class="p-4 border-b border-gray-800">
                         <label class="block text-[10px] font-semibold text-gray-600 uppercase tracking-widest mb-2">Exchange</label>
-                        <div class="grid grid-cols-2 gap-2">
+                        <div class="grid grid-cols-3 gap-2">
                             @foreach([
-                                'hyperliquid' => ['label' => 'HyperLiquid', 'desc' => 'Min vol $100K', 'active' => 'border-blue-500/50 bg-blue-500/8', 'text' => 'text-blue-400', 'dot' => 'bg-blue-500'],
+                                'hyperliquid' => ['label' => 'HyperLiquid', 'desc' => 'Min vol $100K', 'active' => 'border-blue-500/50 bg-blue-500/8',   'text' => 'text-blue-400',   'dot' => 'bg-blue-500'],
                                 'binance'     => ['label' => 'Binance',     'desc' => 'Min vol $1M',   'active' => 'border-yellow-500/50 bg-yellow-500/8', 'text' => 'text-yellow-400', 'dot' => 'bg-yellow-400'],
+                                'mexc'        => ['label' => 'MEXC',        'desc' => 'Min vol $1M',   'active' => 'border-teal-500/50 bg-teal-500/8',     'text' => 'text-teal-400',   'dot' => 'bg-teal-400'],
                             ] as $value => $meta)
                             <label :class="exchange === '{{ $value }}' ? '{{ $meta['active'] }}' : 'border-gray-800 hover:border-gray-700 bg-gray-800/40'"
                                    class="flex items-center gap-2.5 px-3 py-2.5 rounded border cursor-pointer transition-all duration-150">

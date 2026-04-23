@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('signals', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('pair_scan_id')->constrained('pair_scans')->cascadeOnDelete();
+            $table->unsignedBigInteger('pair_scan_id');
             $table->string('pair', 20);
             $table->string('timeframe', 5);
             $table->string('strategy', 30);

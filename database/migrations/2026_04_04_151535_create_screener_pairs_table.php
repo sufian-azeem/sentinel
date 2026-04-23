@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('screener_pairs', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('screener_run_id')->constrained()->cascadeOnDelete();
+            $table->unsignedBigInteger('screener_run_id');
             $table->string('symbol', 30);
             $table->string('pair', 20);
             $table->decimal('price', 20, 8);

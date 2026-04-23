@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('executed_trades', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('signal_id')->nullable()->constrained()->nullOnDelete();
+            $table->unsignedBigInteger('signal_id')->nullable();
             $table->string('exchange', 30);
             $table->string('exchange_order_id', 100)->nullable();
             $table->string('pair', 20);
