@@ -77,8 +77,10 @@ class ScanSignalsCommand extends Command
                     }
                 }
 
-                // Delete stale scans without signals before fresh scan
+                // Delete stale scans only for the TFs being re-scanned (preserves other TFs)
+                $tfsToDrop = $tfsToScan ?? ['15M', '1H', '4H'];
                 PairScan::where('screener_pair_id', $pair->id)
+                    ->whereIn('timeframe', $tfsToDrop)
                     ->whereNotIn('id', Signal::select('pair_scan_id'))
                     ->delete();
 

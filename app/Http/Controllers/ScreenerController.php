@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\FavoritePair;
 use App\Models\ScreenerPair;
 use App\Models\ScreenerRun;
+use Illuminate\Database\Eloquent\Collection;
 
 class ScreenerController extends Controller
 {
@@ -40,7 +41,7 @@ class ScreenerController extends Controller
         return FavoritePair::pluck('pair')->flip()->all();
     }
 
-    private function loadResults(int $runId)
+    private function loadResults(int $runId): Collection
     {
         return ScreenerPair::where('screener_run_id', $runId)
             ->with('pairScans')
