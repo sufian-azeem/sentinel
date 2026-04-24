@@ -135,6 +135,22 @@ return [
             'replace_placeholders' => true,
         ],
 
+        'worker' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/worker.log'),
+            'level' => 'debug',
+            'days' => 7,
+            'replace_placeholders' => true,
+        ],
+
+        'scheduler' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/scheduler.log'),
+            'level' => 'debug',
+            'days' => 7,
+            'replace_placeholders' => true,
+        ],
+
     ],
 
 ];
