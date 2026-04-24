@@ -16,7 +16,7 @@
     {{-- Navigation --}}
     <nav class="bg-gray-900 border-b border-gray-800">
         <div class="max-w-screen-2xl mx-auto px-4 flex items-center gap-6 h-12">
-            <a href="{{ route('dashboard') }}" class="text-emerald-400 font-bold tracking-widest text-sm">⚡ CRYPTO SIGNALS</a>
+            <a href="{{ route('dashboard') }}" class="text-emerald-400 font-bold tracking-widest text-sm">⚡ SENTINEL</a>
             <div class="flex gap-1 ml-4">
                 <a href="{{ route('dashboard') }}"
                    class="px-3 py-1 rounded text-xs {{ request()->routeIs('dashboard') ? 'bg-emerald-500/20 text-emerald-400' : 'text-gray-400 hover:text-gray-200' }}">
