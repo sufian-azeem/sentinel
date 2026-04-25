@@ -7,12 +7,12 @@
 ])
 
 @php
-    $baseAsset  = Str::before($pair, '/');
-    $usedMexc   = $tfData && collect($tfData)->contains(fn($td) => ($td['exchange'] ?? null) === 'mexc');
-    $tvExchange = $usedMexc ? 'MEXC' : 'BINANCE';
-    $url = $exchange === 'hyperliquid'
+    use App\Enums\Exchange;
+    $baseAsset    = Str::before($pair, '/');
+    $exchangeEnum = Exchange::tryFrom($exchange) ?? Exchange::Binance;
+    $url = $exchangeEnum === Exchange::Hyperliquid
         ? 'https://app.hyperliquid.xyz/trade/' . $baseAsset
-        : 'https://www.tradingview.com/chart/?symbol=' . $tvExchange . ':' . rawurlencode(str_replace(['/', '币安人生'], ['', 'BIANRENSHENG'], $pair)) . '&interval=' . $interval;
+        : 'https://www.tradingview.com/chart/?symbol=' . $exchangeEnum->tradingViewName() . ':' . rawurlencode(str_replace('/', '', $pair)) . '&interval=' . $interval;
 @endphp
 
 <a href="{{ $url }}" target="_blank" {{ $attributes->class([$class]) }}>{{ $pair }}</a>
