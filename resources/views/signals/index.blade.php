@@ -52,7 +52,7 @@
                 @endphp
                 <tr class="border-b border-gray-800/50 hover:bg-gray-800/30">
                     <td class="px-4 py-2 font-semibold">
-                        <x-pair-link :pair="$signal->pair" :interval="$tvInterval" :tfData="$signal->pairScan?->screenerPair?->tf_data_json" />
+                        <x-pair-link :pair="$signal->pair" :interval="$tvInterval" :exchange="$signal->pairScan?->screenerPair?->filters_json['exchange'] ?? 'binance'" :tfData="$signal->pairScan?->screenerPair?->tf_data_json" />
                     </td>
                     <td class="px-4 py-2 text-gray-400">
                         {{ $signal->timeframe }}
