@@ -69,16 +69,20 @@ class TrackSignalsCommand extends Command
      */
     private function fetchCandles(string $exchange, array $pairs): array
     {
-        return match (Exchange::from($exchange)) {
-            Exchange::Binance => $this->fetchBinanceCandles($pairs),
+        $ex = Exchange::from($exchange);
+
+        return match ($ex) {
+            Exchange::Binance,
+            Exchange::Mexc => $this->fetchBinanceCompatibleCandles($pairs, $ex),
             Exchange::Hyperliquid => $this->fetchHyperliquidCandles($pairs),
+            Exchange::Bybit => throw new \RuntimeException('Bybit tracking not implemented'),
         };
     }
 
     /** @return array<string, array{high: float, low: float}> */
-    private function fetchBinanceCandles(array $pairs): array
+    private function fetchBinanceCompatibleCandles(array $pairs, Exchange $exchange): array
     {
-        $base = rtrim(env('BINANCE_API_URL', 'https://api.binance.com'), '/');
+        $base = rtrim($exchange->apiBaseUrl(), '/');
 
         // symbol → DB pair map
         $symbolToPair = [];
@@ -123,7 +127,7 @@ class TrackSignalsCommand extends Command
     /** @return array<string, array{high: float, low: float}> */
     private function fetchHyperliquidCandles(array $pairs): array
     {
-        $base = rtrim(env('HYPERLIQUID_API_URL', 'https://api.hyperliquid.xyz'), '/');
+        $base = rtrim(Exchange::Hyperliquid->apiBaseUrl(), '/');
 
         // coin → DB pair map
         $coinToPair = [];
