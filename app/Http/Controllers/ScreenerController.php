@@ -12,20 +12,23 @@ class ScreenerController extends Controller
     public function index()
     {
         $run = ScreenerRun::completed()->latest('id')->first();
+        $favorites = $this->favoritesMap();
 
         return view('screener.index', [
             'run' => $run,
-            'results' => $run ? $this->loadResults($run->id) : collect(),
-            'favorites' => $this->favoritesMap(),
+            'results' => $run ? $this->loadResults($run->id, $favorites) : collect(),
+            'favorites' => $favorites,
         ]);
     }
 
     public function show(ScreenerRun $screenerRun)
     {
+        $favorites = $this->favoritesMap();
+
         return view('screener.index', [
             'run' => $screenerRun,
-            'results' => $this->loadResults($screenerRun->id),
-            'favorites' => $this->favoritesMap(),
+            'results' => $this->loadResults($screenerRun->id, $favorites),
+            'favorites' => $favorites,
         ]);
     }
 
@@ -41,12 +44,16 @@ class ScreenerController extends Controller
         return FavoritePair::pluck('pair')->flip()->all();
     }
 
-    private function loadResults(int $runId): Collection
+    private function loadResults(int $runId, array $favorites): Collection
     {
         return ScreenerPair::where('screener_run_id', $runId)
             ->with('pairScans')
-            ->orderByDesc('qualified')
-            ->orderByDesc('score')
-            ->get();
+            ->get()
+            ->sortBy(fn ($r) => [
+                $r->qualified ? 0 : 1,
+                isset($favorites[$r->pair]) ? 0 : 1,
+                -$r->score,
+            ])
+            ->values();
     }
 }

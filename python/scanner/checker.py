@@ -31,6 +31,30 @@ import indicators  # noqa: F401
 # Signal evaluation
 # ---------------------------------------------------------------------------
 
+def _build_chart_snapshot(df: "pd.DataFrame", n: int = 60) -> dict:
+    """Extract last n candles + shifted alligator lines for chart rendering."""
+    snap = df.tail(n)
+    has = {col: col in snap.columns for col in ("jaw", "teeth", "lips")}
+    candles, jaw_data, teeth_data, lips_data = [], [], [], []
+
+    for _, row in snap.iterrows():
+        ts = int(row["timestamp"]) // 1000
+        candles.append({
+            "t": ts,
+            "o": round(float(row["open"]),  6),
+            "h": round(float(row["high"]),  6),
+            "l": round(float(row["low"]),   6),
+            "c": round(float(row["close"]), 6),
+        })
+        for col, lst in (("jaw", jaw_data), ("teeth", teeth_data), ("lips", lips_data)):
+            if has[col]:
+                v = row[col]
+                if pd.notna(v) and float(v) > 0:
+                    lst.append({"t": ts, "v": round(float(v), 6)})
+
+    return {"candles": candles, "jaw": jaw_data, "teeth": teeth_data, "lips": lips_data}
+
+
 def check_signal(
     ticker: TickerScore,
     exchange: str = "binance",
@@ -188,6 +212,8 @@ def check_signal(
     if len(df) < 3:
         return _no_signal("insufficient_data_after_indicators", candles_fetched=len(df))
 
+    chart_snapshot = _build_chart_snapshot(df)
+
     # ── Extract seed for future incremental scans ─────────────────────────
     last_row   = df.iloc[-1]
     _new_seed  = {
@@ -245,6 +271,7 @@ def check_signal(
             "screener_confluence": ticker.confluence,
             "conditions_json":     candle_diagnostics,
             "alligator_seed":      _new_seed,
+            "chart_snapshot":      chart_snapshot,
         }
 
     best = hits[0]
@@ -271,6 +298,7 @@ def check_signal(
         "screener_confluence": ticker.confluence,
         "conditions_json":     candle_diagnostics,
         "alligator_seed":      _new_seed,
+        "chart_snapshot":      chart_snapshot,
     }
 
 

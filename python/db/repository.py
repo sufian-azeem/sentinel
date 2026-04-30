@@ -235,6 +235,56 @@ def load_pair_by_result_id(result_id: int, conn=None) -> dict | None:
 
 # ---------------------------------------------------------------------------
 # pair_scans
+def load_latest_chart_snapshot(screener_pair_id: int, timeframe: str) -> tuple[int, dict] | tuple[None, None]:
+    """Return (scan_id, snapshot_dict) for the most recent non-null snapshot, or (None, None)."""
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, chart_snapshot_json FROM pair_scans
+                WHERE screener_pair_id = %s AND timeframe = %s
+                  AND chart_snapshot_json IS NOT NULL
+                ORDER BY id DESC LIMIT 1
+                """,
+                (screener_pair_id, timeframe),
+            )
+            row = cur.fetchone()
+        if row and row[1]:
+            return row[0], json.loads(row[1])
+        return None, None
+    finally:
+        conn.close()
+
+
+def delete_pair_scan(scan_id: int) -> None:
+    """Delete a single pair_scan row, only if it has no attached signals."""
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "DELETE FROM pair_scans WHERE id = %s AND id NOT IN (SELECT pair_scan_id FROM signals)",
+                (scan_id,),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def update_scan_chart_snapshot(scan_id: int, chart_snapshot_json: str) -> None:
+    """Overwrite chart_snapshot_json for a single pair_scan row."""
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE pair_scans SET chart_snapshot_json = %s WHERE id = %s",
+                (chart_snapshot_json, scan_id),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+
 # ---------------------------------------------------------------------------
 
 def delete_signal_scans_for_run(run_id: int) -> None:
@@ -282,6 +332,7 @@ def update_signal_scan(
     candles_fetched: int,
     conditions_json: list,
     error_message: str | None = None,
+    chart_snapshot_json: str | None = None,
 ) -> None:
     """Update a pair_scan with results after check_signal() completes."""
     conn = get_connection()
@@ -291,7 +342,8 @@ def update_signal_scan(
                 """
                 UPDATE pair_scans
                 SET status = %s, candles_fetched = %s,
-                    conditions_json = %s, error_message = %s
+                    conditions_json = %s, error_message = %s,
+                    chart_snapshot_json = %s
                 WHERE id = %s
                 """,
                 (
@@ -299,6 +351,7 @@ def update_signal_scan(
                     candles_fetched,
                     json.dumps(conditions_json),
                     error_message,
+                    chart_snapshot_json,
                     scan_id,
                 ),
             )

@@ -77,11 +77,13 @@ class ScanSignalsCommand extends Command
                     }
                 }
 
-                // Delete stale scans only for the TFs being re-scanned (preserves other TFs)
+                // Delete stale scans only for the TFs being re-scanned (preserves other TFs).
+                // Scans with chart_snapshot_json are kept so Python can merge from them.
                 $tfsToDrop = $tfsToScan ?? ['15M', '1H', '4H'];
                 PairScan::where('screener_pair_id', $pair->id)
                     ->whereIn('timeframe', $tfsToDrop)
                     ->whereNotIn('id', Signal::select('pair_scan_id'))
+                    ->whereNull('chart_snapshot_json')
                     ->delete();
 
                 $batchPairs[] = [

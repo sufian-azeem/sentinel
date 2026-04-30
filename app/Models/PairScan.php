@@ -20,11 +20,13 @@ class PairScan extends Model
         'candles_fetched',
         'status',
         'conditions_json',
+        'chart_snapshot_json',
         'error_message',
     ];
 
     protected $casts = [
         'conditions_json' => 'array',
+        'chart_snapshot_json' => 'array',
         'created_at' => 'datetime',
     ];
 

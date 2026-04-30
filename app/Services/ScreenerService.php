@@ -81,6 +81,31 @@ class ScreenerService
                 return $b['score'] <=> $a['score'];
             });
 
+            // Prefer USDT over USDC: drop USDC if the same base already has a USDT pair
+            $seenBases = [];
+            $deduped = [];
+            foreach ($results as $row) {
+                $sym = $row['symbol'];
+                if (str_ends_with($sym, 'USDT')) {
+                    $base = substr($sym, 0, -4);
+                    if (isset($seenBases[$base])) {
+                        $deduped[$seenBases[$base]] = $row; // replace USDC already stored
+                    } else {
+                        $seenBases[$base] = count($deduped);
+                        $deduped[] = $row;
+                    }
+                } elseif (str_ends_with($sym, 'USDC')) {
+                    $base = substr($sym, 0, -4);
+                    if (! isset($seenBases[$base])) {
+                        $seenBases[$base] = count($deduped);
+                        $deduped[] = $row;
+                    }
+                } else {
+                    $deduped[] = $row;
+                }
+            }
+            $results = array_values($deduped);
+
             foreach ($results as $row) {
                 ScreenerPair::create(['screener_run_id' => $run->id, ...$row]);
             }

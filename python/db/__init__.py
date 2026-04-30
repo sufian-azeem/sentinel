@@ -19,6 +19,9 @@ from db.repository import (
     create_signal,
     load_qualified_pairs,
     load_pair_by_result_id,
+    load_latest_chart_snapshot,
+    update_scan_chart_snapshot,
+    delete_pair_scan,
 )
 
 __all__ = [
@@ -34,4 +37,7 @@ __all__ = [
     "create_signal",
     "load_qualified_pairs",
     "load_pair_by_result_id",
+    "load_latest_chart_snapshot",
+    "update_scan_chart_snapshot",
+    "delete_pair_scan",
 ]

@@ -78,6 +78,27 @@
     </div>
     @endif
 
+    @if($signal->pairScan?->chart_snapshot_json)
+    @php
+        $snapshot    = $signal->pairScan->chart_snapshot_json;
+        $candleTime  = $signal->candle_time?->utc()->timestamp;
+    @endphp
+    <div class="bg-gray-900 border border-gray-800 rounded-lg mb-6 overflow-hidden">
+        <div class="px-4 py-2.5 border-b border-gray-800 flex items-center justify-between">
+            <span class="text-xs text-gray-500 font-semibold uppercase tracking-wider">{{ $signal->timeframe }} Chart · Alligator</span>
+            <span class="text-[10px] text-gray-700">{{ $signal->pairScan->exchange }}</span>
+        </div>
+        <div id="signal-chart" class="w-full" style="height:360px;"
+             data-snapshot='@json($snapshot)'
+             data-entry="{{ (float) $signal->entry_price }}"
+             data-sl="{{ $signal->sl_price ? (float) $signal->sl_price : '' }}"
+             data-tp1="{{ $signal->tp1_price ? (float) $signal->tp1_price : '' }}"
+             data-tp2="{{ $signal->tp2_price ? (float) $signal->tp2_price : '' }}"
+             data-candle-time="{{ $candleTime }}">
+        </div>
+    </div>
+    @endif
+
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
 
         {{-- Entry Details --}}
@@ -185,6 +206,74 @@
         </div>
 
     </div>
+
+    @push('scripts')
+    @if($signal->pairScan?->chart_snapshot_json)
+    <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
+    <script>
+    (function () {
+        var el = document.getElementById('signal-chart');
+        if (!el) return;
+        var data;
+        try { data = JSON.parse(el.dataset.snapshot); } catch (e) { return; }
+        if (!data || !data.candles || !data.candles.length) return;
+
+        var chart = LightweightCharts.createChart(el, {
+            autoSize: true,
+            layout: { background: { color: '#111827' }, textColor: '#9ca3af' },
+            grid: { vertLines: { color: '#1f2937' }, horzLines: { color: '#1f2937' } },
+            crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+            rightPriceScale: { borderColor: '#374151' },
+            timeScale: { borderColor: '#374151', timeVisible: true, secondsVisible: false },
+            handleScroll: true,
+            handleScale: true,
+        });
+
+        var cs = chart.addCandlestickSeries({
+            upColor: '#10b981', downColor: '#ef4444',
+            borderUpColor: '#10b981', borderDownColor: '#ef4444',
+            wickUpColor: '#10b981', wickDownColor: '#ef4444',
+        });
+        cs.setData(data.candles.map(function (c) {
+            return { time: c.t, open: c.o, high: c.h, low: c.l, close: c.c };
+        }));
+
+        if (data.jaw && data.jaw.length)
+            chart.addLineSeries({ color: '#3b82f6', lineWidth: 1.5, title: 'Jaw', lastValueVisible: false, priceLineVisible: false })
+                .setData(data.jaw.map(function (p) { return { time: p.t, value: p.v }; }));
+        if (data.teeth && data.teeth.length)
+            chart.addLineSeries({ color: '#ef4444', lineWidth: 1.5, title: 'Teeth', lastValueVisible: false, priceLineVisible: false })
+                .setData(data.teeth.map(function (p) { return { time: p.t, value: p.v }; }));
+        if (data.lips && data.lips.length)
+            chart.addLineSeries({ color: '#22c55e', lineWidth: 1.5, title: 'Lips', lastValueVisible: false, priceLineVisible: false })
+                .setData(data.lips.map(function (p) { return { time: p.t, value: p.v }; }));
+
+        var entry = parseFloat(el.dataset.entry);
+        var sl    = el.dataset.sl  ? parseFloat(el.dataset.sl)  : null;
+        var tp1   = el.dataset.tp1 ? parseFloat(el.dataset.tp1) : null;
+        var tp2   = el.dataset.tp2 ? parseFloat(el.dataset.tp2) : null;
+
+        if (entry) cs.createPriceLine({ price: entry, color: '#d1d5db', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed, title: 'Entry', axisLabelVisible: true });
+        if (sl)    cs.createPriceLine({ price: sl,    color: '#ef4444', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed, title: 'SL',    axisLabelVisible: true });
+        if (tp1)   cs.createPriceLine({ price: tp1,   color: '#10b981', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed, title: 'TP1',   axisLabelVisible: true });
+        if (tp2)   cs.createPriceLine({ price: tp2,   color: '#34d399', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed, title: 'TP2',   axisLabelVisible: true });
+
+        var ct = parseInt(el.dataset.candleTime, 10);
+        if (ct) {
+            cs.setMarkers([{
+                time: ct,
+                position: 'belowBar',
+                color: '#fbbf24',
+                shape: 'arrowUp',
+                text: '{{ $signal->entry_type }}',
+            }]);
+        }
+
+        chart.timeScale().fitContent();
+    })();
+    </script>
+    @endif
+    @endpush
 
     {{-- Conditions Breakdown --}}
     @if($signal->conditions_json && count($signal->conditions_json) > 0)

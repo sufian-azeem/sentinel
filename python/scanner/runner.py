@@ -37,6 +37,22 @@ INCREMENTAL_CANDLES = 20
 HTF_MAP: dict[str, str | None] = {"15M": "1H", "1H": "4H", "4H": None}
 
 
+def _merge_chart_snapshots(old: dict, new: dict, n: int = 60) -> dict:
+    """Merge new candles into an existing snapshot, keeping the latest n candles."""
+    candle_map = {c["t"]: c for c in old.get("candles", [])}
+    for c in new.get("candles", []):
+        candle_map[c["t"]] = c
+    candles = sorted(candle_map.values(), key=lambda x: x["t"])[-n:]
+
+    def merge_line(key: str) -> list:
+        pts = {p["t"]: p for p in old.get(key, [])}
+        for p in new.get(key, []):
+            pts[p["t"]] = p
+        return sorted(pts.values(), key=lambda x: x["t"])[-n:]
+
+    return {"candles": candles, "jaw": merge_line("jaw"), "teeth": merge_line("teeth"), "lips": merge_line("lips")}
+
+
 def _make_ticker_from_db(row: dict) -> TickerScore:
     """Reconstruct a minimal TickerScore from a DB-loaded screener_result row."""
     pair = row["pair"]          # e.g. "BTC/USDT"
@@ -166,6 +182,7 @@ def _scan_pair_with_candle_reuse(
                     result.get("candles_fetched", 0),
                     result.get("conditions_json", []),
                     result.get("skip_reason") or None,
+                    json.dumps(result["chart_snapshot"]) if result.get("chart_snapshot") else None,
                 )
                 if result.get("signal_found"):
                     repo.create_signal(scan_id, result)
@@ -313,7 +330,21 @@ def _scan_pair_incremental(
                     result.get("candles_fetched", 0),
                     result.get("conditions_json", []),
                     result.get("skip_reason") or None,
+                    None,
                 )
+                # Merge new candles into previous snapshot so the chart stays current,
+                # then delete the old anchor scan (no longer needed).
+                new_snap = result.get("chart_snapshot")
+                if new_snap and new_snap.get("candles") and result_id:
+                    anchor_id, prev_snap = repo.load_latest_chart_snapshot(result_id, tf)
+                    if prev_snap:
+                        merged = _merge_chart_snapshots(prev_snap, new_snap)
+                        repo.update_scan_chart_snapshot(scan_id, json.dumps(merged))
+                        if anchor_id and anchor_id != scan_id:
+                            repo.delete_pair_scan(anchor_id)
+                    else:
+                        repo.update_scan_chart_snapshot(scan_id, json.dumps(new_snap))
+
                 if result.get("signal_found"):
                     repo.create_signal(scan_id, result)
 
@@ -592,6 +623,7 @@ def main() -> None:
                         result.get("candles_fetched", 0),
                         result.get("conditions_json", []),
                         result.get("skip_reason") or None,
+                        json.dumps(result["chart_snapshot"]) if result.get("chart_snapshot") else None,
                     )
                     if result.get("signal_found"):
                         repo.create_signal(scan_id, result)

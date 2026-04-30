@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\PairScan;
 use App\Models\ScreenerPair;
 use App\Models\ScreenerRun;
+use App\Models\Signal;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
@@ -109,7 +110,9 @@ class ScanController extends Controller
 
     public function removePair(ScreenerPair $screenerPair): RedirectResponse
     {
-        PairScan::where('screener_pair_id', $screenerPair->id)->delete();
+        $scanIds = PairScan::where('screener_pair_id', $screenerPair->id)->pluck('id');
+        Signal::whereIn('pair_scan_id', $scanIds)->delete();
+        PairScan::whereIn('id', $scanIds)->delete();
         $screenerPair->delete();
 
         return back()->with('success', "{$screenerPair->pair} removed.");
