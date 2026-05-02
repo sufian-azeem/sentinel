@@ -395,6 +395,7 @@ function _buildChart(el, data) {
         chart.addLineSeries({ color: '#22c55e', lineWidth: 1, lastValueVisible: false, priceLineVisible: false })
             .setData(data.lips.map(function (p) { return { time: p.t, value: p.v }; }));
     chart.timeScale().fitContent();
+    chart.timeScale().applyOptions({ rightOffset: 3 });
     el._lwChart = chart;
 }
 
