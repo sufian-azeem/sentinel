@@ -31,6 +31,7 @@ class Signal extends Model
         'confluence',
         'conditions_json',
         'chart_data_json',
+        'discord_thread_id',
         'status',
     ];
 
