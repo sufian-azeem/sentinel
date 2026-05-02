@@ -27,15 +27,16 @@ class DiscordNotifier
         ];
 
         $previewUrl = URL::temporarySignedRoute('signals.preview', now()->addDays(7), ['signal' => $signal->id]);
+        $authUrl = route('signals.show', $signal->id);
 
         $this->send([
             'embeds' => [[
                 'title' => '🔔 Signal Found',
                 'url' => $previewUrl,
-                'description' => "**{$signal->pair}** · {$signal->timeframe} · {$signal->entry_type}",
+                'description' => "**{$signal->pair}** · {$signal->timeframe} · {$signal->entry_type}\n[Open (login required)]({$authUrl})",
                 'color' => 0x00C853,
                 'fields' => $fields,
-                'footer' => ['text' => "Signal #{$signal->id} · link expires in 7 days"],
+                'footer' => ['text' => "Signal #{$signal->id} · anonymous link expires in 7 days"],
                 'timestamp' => now()->toIso8601String(),
             ]],
         ]);
