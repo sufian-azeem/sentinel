@@ -32,9 +32,11 @@ import indicators  # noqa: F401
 # ---------------------------------------------------------------------------
 
 def _build_chart_snapshot(df: "pd.DataFrame", n: int = 60) -> dict:
-    """Extract last n candles + shifted alligator lines for chart rendering."""
+    """Extract last n candles + alligator lines for chart rendering."""
     snap = df.tail(n)
-    has = {col: col in snap.columns for col in ("jaw", "teeth", "lips")}
+    # Use raw (unshifted) SMMA so values reach the last candle without NaN gaps.
+    col_map = {"jaw": "jaw_off", "teeth": "teeth_off", "lips": "lips_off"}
+    has = {out: src in snap.columns for out, src in col_map.items()}
     candles, jaw_data, teeth_data, lips_data = [], [], [], []
 
     for _, row in snap.iterrows():
@@ -46,9 +48,9 @@ def _build_chart_snapshot(df: "pd.DataFrame", n: int = 60) -> dict:
             "l": round(float(row["low"]),   6),
             "c": round(float(row["close"]), 6),
         })
-        for col, lst in (("jaw", jaw_data), ("teeth", teeth_data), ("lips", lips_data)):
-            if has[col]:
-                v = row[col]
+        for out_col, src_col, lst in (("jaw", "jaw_off", jaw_data), ("teeth", "teeth_off", teeth_data), ("lips", "lips_off", lips_data)):
+            if has[out_col]:
+                v = row[src_col]
                 if pd.notna(v) and float(v) > 0:
                     lst.append({"t": ts, "v": round(float(v), 6)})
 
