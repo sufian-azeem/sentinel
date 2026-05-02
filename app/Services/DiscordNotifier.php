@@ -31,7 +31,6 @@ class DiscordNotifier
 
         $response = $this->send(
             [
-                'thread_name' => "{$signal->pair} · {$signal->timeframe} · #{$signal->id}",
                 'embeds' => [[
                     'title' => '🔔 Signal Found',
                     'url' => $previewUrl,
@@ -45,9 +44,9 @@ class DiscordNotifier
             wait: true,
         );
 
-        // Store the forum thread ID so SL/TP replies post into the same thread
-        if ($response && isset($response['channel_id'])) {
-            $signal->updateQuietly(['discord_thread_id' => $response['channel_id']]);
+        // Store message ID so SL/TP can reply to this message
+        if ($response && isset($response['id'])) {
+            $signal->updateQuietly(['discord_thread_id' => $response['id']]);
         }
     }
 
@@ -71,21 +70,27 @@ class DiscordNotifier
             ? (((float) $outcome->pnl_r >= 0 ? '+' : '').number_format((float) $outcome->pnl_r, 2).'R')
             : '—';
 
-        $this->send(
-            [
-                'embeds' => [[
-                    'title' => "{$emoji} {$label} — {$signal->pair} · {$signal->timeframe}",
-                    'description' => "Exit: `{$exitPrice}`  |  **{$pnlPct}**  |  {$pnlR}",
-                    'color' => $color,
-                    'footer' => ['text' => "Signal #{$signal->id}"],
-                    'timestamp' => now()->toIso8601String(),
-                ]],
-            ],
-            threadId: $signal->discord_thread_id,
-        );
+        $payload = [
+            'embeds' => [[
+                'title' => "{$emoji} {$label} — {$signal->pair} · {$signal->timeframe}",
+                'description' => "Exit: `{$exitPrice}`  |  **{$pnlPct}**  |  {$pnlR}",
+                'color' => $color,
+                'footer' => ['text' => "Signal #{$signal->id}"],
+                'timestamp' => now()->toIso8601String(),
+            ]],
+        ];
+
+        if ($signal->discord_thread_id) {
+            $payload['message_reference'] = [
+                'message_id' => $signal->discord_thread_id,
+                'fail_if_not_exists' => false,
+            ];
+        }
+
+        $this->send($payload);
     }
 
-    private function send(array $payload, ?string $threadId = null, bool $wait = false): ?array
+    private function send(array $payload, bool $wait = false): ?array
     {
         $url = config('services.discord.webhook_url');
 
@@ -93,15 +98,8 @@ class DiscordNotifier
             return null;
         }
 
-        $query = [];
-        if ($threadId) {
-            $query['thread_id'] = $threadId;
-        }
         if ($wait) {
-            $query['wait'] = 'true';
-        }
-        if ($query) {
-            $url .= '?'.http_build_query($query);
+            $url .= '?wait=true';
         }
 
         $response = Http::timeout(5)->post($url, $payload);
