@@ -41,6 +41,7 @@ class Signal extends Model
         'risk_pct' => 'decimal:4',
         'screener_score' => 'decimal:6',
         'conditions_json' => 'array',
+        'chart_data_json' => 'array',
         'created_at' => 'datetime',
     ];
 

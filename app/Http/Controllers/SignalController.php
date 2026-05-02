@@ -43,22 +43,36 @@ class SignalController extends Controller
     {
         $signal->load('pairScan', 'outcome');
 
-        $exchange = $signal->pairScan?->exchange ?? 'binance';
         $tf = $signal->timeframe;
-
         $tfMinutes = match (true) {
             str_ends_with($tf, 'H') => (int) $tf * 60,
             default => (int) $tf,
         };
 
         $signalTs = $signal->candle_time->utc()->timestamp;
-        $since = Carbon::createFromTimestamp($signalTs - 50 * $tfMinutes * 60)->utc()->toIso8601String();
-
-        $maxUntilTs = $signalTs + 100 * $tfMinutes * 60;
+        $tfSecs = $tfMinutes * 60;
         $exitTs = $signal->outcome?->exit_time?->utc()->timestamp;
-        $untilTs = $exitTs
-            ? min($exitTs + 5 * $tfMinutes * 60, $maxUntilTs)
-            : min(now()->utc()->timestamp, $maxUntilTs);
+        $isClosed = $exitTs !== null;
+
+        // Return cached chart data for closed signals — never re-fetch
+        if ($isClosed && $signal->chart_data_json) {
+            return response()->json($signal->chart_data_json);
+        }
+
+        $exchange = $signal->pairScan?->exchange ?? 'binance';
+
+        if ($isClosed) {
+            // Closed: 50 candles before entry → exit + 20 candles forward
+            $sinceTs = $signalTs - 50 * $tfSecs;
+            $untilTs = $exitTs + 20 * $tfSecs;
+        } else {
+            // Active: last 150 candles up to now
+            $nowTs = now()->utc()->timestamp;
+            $sinceTs = $nowTs - 150 * $tfSecs;
+            $untilTs = $nowTs;
+        }
+
+        $since = Carbon::createFromTimestamp($sinceTs)->utc()->toIso8601String();
         $until = Carbon::createFromTimestamp($untilTs)->utc()->toIso8601String();
 
         $python = config('services.python_bin', 'python3');
@@ -93,6 +107,11 @@ class SignalController extends Controller
             'exit_price' => $signal->outcome?->exit_price ? (float) $signal->outcome->exit_price : null,
             'status' => $signal->status,
         ];
+
+        // Persist chart data for closed signals so we never re-fetch
+        if ($isClosed) {
+            $signal->updateQuietly(['chart_data_json' => $data]);
+        }
 
         return response()->json($data);
     }
