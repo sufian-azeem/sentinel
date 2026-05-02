@@ -10,6 +10,10 @@ use App\Http\Controllers\SignalController;
 use Illuminate\Support\Facades\Route;
 use Spatie\Health\Http\Controllers\HealthCheckResultsController;
 
+// Signed preview links — no login required, URLs expire after 7 days
+Route::get('/s/{signal}', [SignalController::class, 'show'])->name('signals.preview')->middleware('signed');
+Route::get('/s/{signal}/candles', [SignalController::class, 'candles'])->name('signals.preview.candles')->middleware('signed');
+
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login']);

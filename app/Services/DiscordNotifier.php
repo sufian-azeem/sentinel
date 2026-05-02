@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Signal;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\URL;
 
 class DiscordNotifier
 {
@@ -25,13 +26,16 @@ class DiscordNotifier
             ['name' => 'Exchange', 'value' => $exchangeLabel, 'inline' => true],
         ];
 
+        $previewUrl = URL::temporarySignedRoute('signals.preview', now()->addDays(7), ['signal' => $signal->id]);
+
         $this->send([
             'embeds' => [[
                 'title' => '🔔 Signal Found',
+                'url' => $previewUrl,
                 'description' => "**{$signal->pair}** · {$signal->timeframe} · {$signal->entry_type}",
-                'color' => 0x00C853, // emerald green
+                'color' => 0x00C853,
                 'fields' => $fields,
-                'footer' => ['text' => "Signal #{$signal->id}"],
+                'footer' => ['text' => "Signal #{$signal->id} · link expires in 7 days"],
                 'timestamp' => now()->toIso8601String(),
             ]],
         ]);

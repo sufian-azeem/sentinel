@@ -212,7 +212,12 @@
         var loading = document.getElementById('chart-loading');
         if (!el) return;
 
-        fetch('{{ route('signals.candles', $signal) }}')
+        @if(request()->routeIs('signals.preview'))
+        var candlesUrl = '{{ URL::temporarySignedRoute('signals.preview.candles', now()->addDays(7), ['signal' => $signal->id]) }}';
+        @else
+        var candlesUrl = '{{ route('signals.candles', $signal) }}';
+        @endif
+        fetch(candlesUrl)
             .then(function (r) { return r.json(); })
             .then(function (data) {
                 if (!data.candles || !data.candles.length) {
