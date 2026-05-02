@@ -81,7 +81,13 @@
     <div class="bg-gray-900 border border-gray-800 rounded-lg mb-6 overflow-hidden">
         <div class="px-4 py-2.5 border-b border-gray-800 flex items-center justify-between">
             <span class="text-xs text-gray-500 font-semibold uppercase tracking-wider">{{ $signal->timeframe }} Chart · Alligator</span>
-            <span class="text-[10px] text-gray-700">{{ $signal->pairScan?->exchange }}</span>
+            <div class="flex items-center gap-3">
+                <button id="chart-log-toggle"
+                        class="text-[10px] px-2 py-0.5 rounded border border-gray-700 text-gray-600 hover:border-gray-500 hover:text-gray-400 transition-colors">
+                    Log
+                </button>
+                <span class="text-[10px] text-gray-700">{{ $signal->pairScan?->exchange }}</span>
+            </div>
         </div>
         <div id="signal-chart" class="w-full relative" style="height:380px;">
             <div id="chart-loading" class="absolute inset-0 flex items-center justify-center text-xs text-gray-600">
@@ -263,6 +269,19 @@
 
                 chart.timeScale().fitContent();
                 chart.timeScale().applyOptions({ rightOffset: 3 });
+
+                var logBtn = document.getElementById('chart-log-toggle');
+                var logMode = false;
+                logBtn.addEventListener('click', function () {
+                    logMode = !logMode;
+                    chart.priceScale('right').applyOptions({
+                        mode: logMode ? 1 : 0,
+                    });
+                    logBtn.classList.toggle('border-blue-500', logMode);
+                    logBtn.classList.toggle('text-blue-400', logMode);
+                    logBtn.classList.toggle('border-gray-700', !logMode);
+                    logBtn.classList.toggle('text-gray-600', !logMode);
+                });
             })
             .catch(function () { loading.textContent = 'Failed to load chart.'; });
     })();
