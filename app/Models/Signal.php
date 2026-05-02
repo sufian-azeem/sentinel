@@ -30,6 +30,7 @@ class Signal extends Model
         'screener_score',
         'confluence',
         'conditions_json',
+        'chart_data_json',
         'status',
     ];
 
