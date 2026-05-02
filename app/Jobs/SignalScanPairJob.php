@@ -30,7 +30,7 @@ class SignalScanPairJob implements ShouldQueue
 
     public function handle(): void
     {
-        $startedAt = now();
+        $startedAt = now()->utc();
 
         $command = [
             'python3', 'run_scanner.py',

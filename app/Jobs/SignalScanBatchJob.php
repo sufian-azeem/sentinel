@@ -30,7 +30,7 @@ class SignalScanBatchJob implements ShouldQueue
 
     public function handle(): void
     {
-        $startedAt = now();
+        $startedAt = now()->utc();
         $batchFile = tempnam(sys_get_temp_dir(), 'scan-batch-').'.json';
         file_put_contents($batchFile, json_encode($this->pairs));
 
