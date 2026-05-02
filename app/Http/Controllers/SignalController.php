@@ -61,8 +61,10 @@ class SignalController extends Controller
             : min(now()->utc()->timestamp, $maxUntilTs);
         $until = Carbon::createFromTimestamp($untilTs)->utc()->toIso8601String();
 
+        $python = config('services.python_bin', 'python3');
+
         $process = new Process(
-            ['python3', 'chart_data.py',
+            [$python, 'chart_data.py',
                 '--pair', $signal->pair,
                 '--timeframe', $tf,
                 '--exchange', $exchange,

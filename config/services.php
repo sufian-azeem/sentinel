@@ -40,4 +40,6 @@ return [
         'health_alerts' => env('DISCORD_HEALTH_ALERTS', true),
     ],
 
+    'python_bin' => env('PYTHON_BIN', 'python3'),
+
 ];
