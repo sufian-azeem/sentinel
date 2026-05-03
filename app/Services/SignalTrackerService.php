@@ -53,6 +53,14 @@ class SignalTrackerService
 
         $signal->update(['status' => $newStatus]);
 
+        // Auto move SL to break-even on MEXC after TP1 (only when TP2 exists)
+        if ($newStatus === 'tp1_hit' && $tp2 !== null) {
+            $trade = $signal->executedTrades()->where('status', 'open')->latest()->first();
+            if ($trade?->tp2_price) {
+                rescue(fn () => (new MexcSpotService)->moveBreakeven($trade));
+            }
+        }
+
         rescue(fn () => (new DiscordNotifier)->signalClosed($signal->fresh()->load('outcome')));
     }
 }

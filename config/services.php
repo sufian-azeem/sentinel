@@ -42,4 +42,9 @@ return [
 
     'python_bin' => env('PYTHON_BIN', 'python3'),
 
+    'mexc' => [
+        'api_key' => env('MEXC_API_KEY'),
+        'api_secret' => env('MEXC_API_SECRET'),
+    ],
+
 ];

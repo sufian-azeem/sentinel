@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Signal;
+use App\Services\MexcSpotService;
 use App\Services\SignalTrackerService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -34,7 +35,7 @@ class SignalController extends Controller
 
     public function show(Signal $signal)
     {
-        $signal->load('pairScan.screenerRun', 'outcome');
+        $signal->load('pairScan.screenerRun', 'outcome', 'executedTrades');
 
         return view('signals.show', compact('signal'));
     }
@@ -114,6 +115,21 @@ class SignalController extends Controller
         }
 
         return response()->json($data);
+    }
+
+    public function execute(Request $request, Signal $signal, MexcSpotService $mexc): JsonResponse
+    {
+        abort_if(! in_array($signal->status, ['active', 'tp1_hit']), 422, 'Signal is already closed.');
+        abort_if($signal->entry_type !== 'long', 422, 'Only long signals can be executed on spot.');
+        abort_if(! $signal->sl_price, 422, 'Signal has no SL price.');
+
+        $request->validate([
+            'risk_usd' => ['required', 'numeric', 'min:1', 'max:10000'],
+        ]);
+
+        $trade = $mexc->executeSignal($signal, (float) $request->risk_usd);
+
+        return response()->json(['trade_id' => $trade->id, 'status' => $trade->status]);
     }
 
     public function closeManually(Request $request, Signal $signal, SignalTrackerService $tracker)

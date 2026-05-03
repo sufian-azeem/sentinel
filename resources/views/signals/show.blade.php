@@ -78,6 +78,131 @@
     </div>
     @endif
 
+    @if(in_array($signal->status, ['active', 'tp1_hit']) && $signal->entry_type === 'long' && $signal->sl_price && !$signal->executedTrades->where('status', 'open')->count())
+    <div x-data="tradeExecutor()" class="bg-gray-900 border border-gray-800 rounded-lg p-4 mb-6">
+        <div class="flex items-center justify-between">
+            <h2 class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Execute on MEXC Spot</h2>
+            <button @click="open = true" class="px-3 py-1.5 rounded border border-emerald-600/50 bg-emerald-500/10 text-emerald-400 text-xs font-medium hover:bg-emerald-500/20 transition-colors">
+                Execute
+            </button>
+        </div>
+
+        {{-- Modal overlay --}}
+        <div x-show="open" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/60" @keydown.escape.window="open = false">
+            <div @click.outside="open = false" class="bg-gray-900 border border-gray-700 rounded-lg p-6 w-full max-w-sm mx-4">
+                <h3 class="text-sm font-semibold text-gray-200 mb-4">Execute Signal on MEXC</h3>
+
+                <div class="mb-4">
+                    <label class="text-xs text-gray-500 mb-1 block">Risk Amount (USD)</label>
+                    <input type="number" x-model.number="riskUsd" @input="calc()"
+                           min="1" step="0.5"
+                           class="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-gray-500">
+                </div>
+
+                <div class="space-y-2 mb-5 text-xs">
+                    <div class="flex justify-between text-gray-400">
+                        <span>Investment required</span>
+                        <span class="text-gray-200 font-medium" x-text="fmt(notional) + ' USDT'"></span>
+                    </div>
+                    <div class="flex justify-between text-gray-400">
+                        <span>Max risk (SL hit)</span>
+                        <span class="text-red-400 font-medium" x-text="'−$' + fmt(riskUsd)"></span>
+                    </div>
+                    <div class="flex justify-between text-gray-400">
+                        <span>TP1 profit <span class="text-gray-600">(70%)</span></span>
+                        <span class="text-emerald-400 font-medium" x-text="tp1Profit ? '+$' + fmt(tp1Profit) : '—'"></span>
+                    </div>
+                    <div class="flex justify-between text-gray-400">
+                        <span>TP2 profit <span class="text-gray-600">(30%)</span></span>
+                        <span class="text-emerald-400 font-medium" x-text="tp2Profit !== null ? '+$' + fmt(tp2Profit) : '—'"></span>
+                    </div>
+                    <div class="flex justify-between text-gray-400 border-t border-gray-800 pt-2">
+                        <span>Quantity</span>
+                        <span class="text-gray-300" x-text="qty.toFixed(4) + ' {{ Str::before($signal->pair, '/') ?: $signal->pair }}'"></span>
+                    </div>
+                </div>
+
+                <div x-show="error" x-cloak class="text-red-400 text-xs mb-3" x-text="error"></div>
+
+                <div class="flex gap-2">
+                    <button @click="submit()" :disabled="loading"
+                            :class="loading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-emerald-600'"
+                            class="flex-1 bg-emerald-700 text-white text-xs font-medium py-2 rounded transition-colors">
+                        <span x-text="loading ? 'Placing orders…' : 'Confirm & Execute'"></span>
+                    </button>
+                    <button @click="open = false" class="px-4 py-2 text-xs text-gray-500 hover:text-gray-300">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    function tradeExecutor() {
+        return {
+            open: false, loading: false, error: '',
+            riskUsd: 10,
+            notional: 0, tp1Profit: 0, tp2Profit: null, qty: 0,
+            entry: {{ (float) $signal->entry_price }},
+            sl:    {{ (float) $signal->sl_price }},
+            tp1:   {{ $signal->tp1_price ? (float) $signal->tp1_price : 'null' }},
+            tp2:   {{ $signal->tp2_price ? (float) $signal->tp2_price : 'null' }},
+            init() { this.calc(); },
+            calc() {
+                const slDist = Math.abs(this.entry - this.sl);
+                if (!slDist) return;
+                this.qty      = this.riskUsd / slDist;
+                this.notional = this.qty * this.entry;
+                const tp1Qty  = this.tp2 ? this.qty * 0.70 : this.qty;
+                const tp2Qty  = this.tp2 ? this.qty * 0.30 : 0;
+                this.tp1Profit = this.tp1 ? tp1Qty * Math.abs(this.tp1 - this.entry) : 0;
+                this.tp2Profit = this.tp2 ? tp2Qty * Math.abs(this.tp2 - this.entry) : null;
+            },
+            fmt(v) { return (v != null ? Number(v).toFixed(2) : '0.00'); },
+            async submit() {
+                this.loading = true; this.error = '';
+                try {
+                    const r = await fetch('{{ route('signals.execute', $signal) }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
+                        },
+                        body: JSON.stringify({ risk_usd: this.riskUsd }),
+                    });
+                    const data = await r.json();
+                    if (!r.ok) { this.error = data.message || 'Order placement failed.'; return; }
+                    this.open = false;
+                    window.location.reload();
+                } catch (e) {
+                    this.error = 'Network error — check console.';
+                } finally {
+                    this.loading = false;
+                }
+            },
+        };
+    }
+    </script>
+    @endif
+
+    @foreach($signal->executedTrades->where('status', 'open') as $trade)
+    <div class="bg-gray-900 border border-gray-800 rounded-lg p-4 mb-6 text-xs">
+        <div class="flex items-center justify-between mb-3">
+            <h2 class="font-semibold text-gray-400 uppercase tracking-wider">Open MEXC Trade</h2>
+            <span class="px-2 py-0.5 rounded border border-emerald-600/40 bg-emerald-500/10 text-emerald-400">{{ strtoupper($trade->status) }}</span>
+        </div>
+        <div class="grid grid-cols-2 gap-x-6 gap-y-1.5 text-gray-500">
+            <div>Entry order <span class="text-gray-300 font-mono">{{ $trade->exchange_order_id ?? '—' }}</span></div>
+            <div>Qty <span class="text-gray-300">{{ number_format((float) $trade->quantity, 4) }}</span></div>
+            <div>SL order <span class="text-gray-300 font-mono">{{ $trade->sl_order_id ?? '—' }}</span></div>
+            <div>TP1 order <span class="text-gray-300 font-mono">{{ $trade->tp1_order_id ?? '—' }}</span></div>
+            <div>TP2 order <span class="text-gray-300 font-mono">{{ $trade->tp2_order_id ?? '—' }}</span></div>
+            @if($trade->breakeven_moved_at)
+            <div class="col-span-2 text-amber-500">Break-even moved at <x-timestamp :value="$trade->breakeven_moved_at" format="M d, g:i A" /></div>
+            @endif
+        </div>
+    </div>
+    @endforeach
+
     <div class="bg-gray-900 border border-gray-800 rounded-lg mb-6 overflow-hidden">
         <div class="px-4 py-2.5 border-b border-gray-800 flex items-center justify-between">
             <span class="text-xs text-gray-500 font-semibold uppercase tracking-wider">{{ $signal->timeframe }} Chart · Alligator</span>

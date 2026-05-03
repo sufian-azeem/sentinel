@@ -36,6 +36,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/signals/{signal}', [SignalController::class, 'show'])->name('signals.show');
     Route::get('/signals/{signal}/candles', [SignalController::class, 'candles'])->name('signals.candles');
     Route::post('/signals/{signal}/close', [SignalController::class, 'closeManually'])->name('signals.close');
+    Route::post('/signals/{signal}/execute', [SignalController::class, 'execute'])->name('signals.execute');
 
     Route::get('/scans', [ScanController::class, 'index'])->name('scans.index');
     Route::delete('/scans/pairs/{screenerPair}', [ScanController::class, 'removePair'])->name('scans.pairs.remove');
