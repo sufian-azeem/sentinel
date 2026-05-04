@@ -13,16 +13,15 @@ class MexcSpotService
 
     public function __construct(private TradeCalculatorService $calculator) {}
 
-    public function executeSignal(Signal $signal, float $riskUsd): ExecutedTrade
+    public function executeSignal(Signal $signal, float $riskUsd, float $sl, ?float $tp1, ?float $tp2): ExecutedTrade
     {
         $calc = $this->calculator->calculate(
             entry: (float) $signal->entry_price,
-            sl: (float) $signal->sl_price,
-            tp1: $signal->tp1_price ? (float) $signal->tp1_price : null,
-            tp2: $signal->tp2_price ? (float) $signal->tp2_price : null,
+            sl: $sl,
+            tp1: $tp1,
+            tp2: $tp2,
             riskUsd: $riskUsd,
         );
-
         $symbol = $this->toSymbol($signal->pair);
 
         $trade = ExecutedTrade::create([
@@ -35,9 +34,9 @@ class MexcSpotService
             'quantity' => $calc['quantity'],
             'notional_usd' => $calc['notional_usd'],
             'entry_price' => $signal->entry_price,
-            'sl_price' => $signal->sl_price,
-            'tp1_price' => $signal->tp1_price,
-            'tp2_price' => $signal->tp2_price,
+            'sl_price' => $sl,
+            'tp1_price' => $tp1,
+            'tp2_price' => $tp2,
             'status' => 'pending',
         ]);
 
@@ -48,9 +47,9 @@ class MexcSpotService
                 'entry_fill_status' => 'pending',
             ]);
 
-            if ($signal->tp2_price) {
-                $oco1 = $this->placeOco($symbol, $calc['tp1_qty'], (float) $signal->tp1_price, (float) $signal->sl_price);
-                $oco2 = $this->placeOco($symbol, $calc['tp2_qty'], (float) $signal->tp2_price, (float) $signal->sl_price);
+            if ($tp2 && $tp1) {
+                $oco1 = $this->placeOco($symbol, $calc['tp1_qty'], $tp1, $sl);
+                $oco2 = $this->placeOco($symbol, $calc['tp2_qty'], $tp2, $sl);
 
                 $trade->update([
                     'tp1_order_id' => (string) $oco1['tp_order_id'],
@@ -63,8 +62,8 @@ class MexcSpotService
                     ],
                     'status' => 'open',
                 ]);
-            } else {
-                $oco = $this->placeOco($symbol, $calc['tp1_qty'], (float) $signal->tp1_price, (float) $signal->sl_price);
+            } elseif ($tp1) {
+                $oco = $this->placeOco($symbol, $calc['tp1_qty'], $tp1, $sl);
 
                 $trade->update([
                     'tp1_order_id' => (string) $oco['tp_order_id'],

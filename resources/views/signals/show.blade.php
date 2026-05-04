@@ -176,7 +176,7 @@
                             'Content-Type': 'application/json',
                             'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
                         },
-                        body: JSON.stringify({ risk_usd: this.riskUsd }),
+                        body: JSON.stringify({ risk_usd: this.riskUsd, sl: this.sl, tp1: this.tp1, tp2: this.tp2 }),
                     });
                     const data = await r.json();
                     if (!r.ok) { this.error = data.message || 'Order placement failed.'; return; }
