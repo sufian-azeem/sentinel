@@ -524,7 +524,7 @@
                 if (markers.length) cs.setMarkers(markers);
 
                 chart.timeScale().fitContent();
-                chart.timeScale().applyOptions({ rightOffset: 3 });
+                chart.timeScale().applyOptions({ rightOffset: 10 });
 
                 var logBtn = document.getElementById('chart-log-toggle');
                 var logMode = false;
