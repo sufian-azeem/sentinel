@@ -125,17 +125,9 @@ class SignalController extends Controller
         $request->validate([
             'risk_usd' => ['required', 'numeric', 'min:1', 'max:10000'],
             'sl' => ['required', 'numeric', 'gt:0'],
-            'tp1' => ['nullable', 'numeric', 'gt:0'],
-            'tp2' => ['nullable', 'numeric', 'gt:0'],
         ]);
 
-        $trade = $mexc->executeSignal(
-            $signal,
-            (float) $request->risk_usd,
-            (float) $request->sl,
-            $request->tp1 ? (float) $request->tp1 : null,
-            $request->tp2 ? (float) $request->tp2 : null,
-        );
+        $trade = $mexc->executeSignal($signal, (float) $request->risk_usd, (float) $request->sl);
 
         return response()->json(['trade_id' => $trade->id, 'status' => $trade->status]);
     }

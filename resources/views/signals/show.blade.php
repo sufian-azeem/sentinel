@@ -172,9 +172,10 @@
             <div class="bg-gray-900 border border-gray-800 rounded-lg p-4">
                 <div class="flex items-center justify-between mb-4">
                     <h2 class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Execute on MEXC Spot</h2>
-                    <span class="text-xs text-gray-500">
+                    <span class="text-xs text-gray-500 flex items-center gap-1.5">
                         <span class="text-gray-600">Now</span>
-                        <span x-text="entry ? entry.toPrecision(6) : '…'" class="text-gray-300 font-mono ml-1"></span>
+                        <span x-text="entry ? entry.toPrecision(6) : '…'" class="text-gray-300 font-mono"></span>
+                        <button @click="fetchPrice()" :class="priceLoading ? 'opacity-40 cursor-not-allowed' : 'hover:text-gray-300'" class="text-gray-600 transition-colors" title="Refresh price">↻</button>
                     </span>
                 </div>
 
@@ -184,35 +185,13 @@
                            class="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-gray-500">
                 </div>
 
-                <div class="mb-3">
+                <div class="mb-4">
                     <label class="text-xs text-gray-500 mb-1 block">Stop Loss</label>
                     <div class="flex gap-1.5">
                         <input type="number" x-model.number="sl" @input="calc()" step="any"
                                class="flex-1 min-w-0 bg-gray-800 border border-red-900/60 rounded px-3 py-2 text-sm text-red-300 focus:outline-none focus:border-red-600">
                         <button @click="pick('sl')"
                                 :class="pickMode==='sl' ? 'border-red-500 text-red-400 bg-red-500/10' : 'border-gray-700 text-gray-600 hover:border-gray-500 hover:text-gray-400'"
-                                class="px-2.5 rounded border transition-colors text-xs" title="Pick price from chart">⊕</button>
-                    </div>
-                </div>
-
-                <div class="mb-3">
-                    <label class="text-xs text-gray-500 mb-1 block">TP1 <span class="text-gray-600">(70%)</span></label>
-                    <div class="flex gap-1.5">
-                        <input type="number" x-model.number="tp1" @input="calc()" step="any"
-                               class="flex-1 min-w-0 bg-gray-800 border border-emerald-900/60 rounded px-3 py-2 text-sm text-emerald-300 focus:outline-none focus:border-emerald-600">
-                        <button @click="pick('tp1')"
-                                :class="pickMode==='tp1' ? 'border-emerald-500 text-emerald-400 bg-emerald-500/10' : 'border-gray-700 text-gray-600 hover:border-gray-500 hover:text-gray-400'"
-                                class="px-2.5 rounded border transition-colors text-xs" title="Pick price from chart">⊕</button>
-                    </div>
-                </div>
-
-                <div class="mb-4">
-                    <label class="text-xs text-gray-500 mb-1 block">TP2 <span class="text-gray-600">(30%)</span></label>
-                    <div class="flex gap-1.5">
-                        <input type="number" x-model.number="tp2" @input="calc()" step="any"
-                               class="flex-1 min-w-0 bg-gray-800 border border-emerald-900/40 rounded px-3 py-2 text-sm text-emerald-400/70 focus:outline-none focus:border-emerald-700">
-                        <button @click="pick('tp2')"
-                                :class="pickMode==='tp2' ? 'border-emerald-400 text-emerald-300 bg-emerald-400/10' : 'border-gray-700 text-gray-600 hover:border-gray-500 hover:text-gray-400'"
                                 class="px-2.5 rounded border transition-colors text-xs" title="Pick price from chart">⊕</button>
                     </div>
                 </div>
@@ -227,18 +206,20 @@
                         <span class="text-red-400 font-medium" x-text="'−$' + fmt(riskUsd)"></span>
                     </div>
                     <div class="flex justify-between text-gray-400">
-                        <span class="flex items-center gap-1.5">TP1 profit
-                            <span x-show="rrTp1" x-cloak class="px-1 rounded text-[10px] font-mono bg-emerald-900/40 text-emerald-500 border border-emerald-800/50"
-                                  x-text="rrTp1 ? '1:' + rrTp1.toFixed(2) : ''"></span>
+                        <span class="flex items-center gap-1.5">
+                            <span class="text-gray-600">TP1</span>
+                            <span class="font-mono text-emerald-500/70" x-text="tp1Price ? tp1Price.toPrecision(6) : '—'"></span>
+                            <span class="px-1 rounded text-[10px] font-mono bg-emerald-900/40 text-emerald-500 border border-emerald-800/50">1:1</span>
                         </span>
                         <span class="text-emerald-400 font-medium" x-text="tp1Profit ? '+$' + fmt(tp1Profit) : '—'"></span>
                     </div>
                     <div class="flex justify-between text-gray-400">
-                        <span class="flex items-center gap-1.5">TP2 profit
-                            <span x-show="rrTp2" x-cloak class="px-1 rounded text-[10px] font-mono bg-emerald-900/40 text-emerald-500 border border-emerald-800/50"
-                                  x-text="rrTp2 ? '1:' + rrTp2.toFixed(2) : ''"></span>
+                        <span class="flex items-center gap-1.5">
+                            <span class="text-gray-600">TP2</span>
+                            <span class="font-mono text-emerald-500/70" x-text="tp2Price ? tp2Price.toPrecision(6) : '—'"></span>
+                            <span class="px-1 rounded text-[10px] font-mono bg-emerald-900/40 text-emerald-500 border border-emerald-800/50">1:2</span>
                         </span>
-                        <span class="text-emerald-400 font-medium" x-text="tp2Profit !== null ? '+$' + fmt(tp2Profit) : '—'"></span>
+                        <span class="text-emerald-400 font-medium" x-text="tp2Profit ? '+$' + fmt(tp2Profit) : '—'"></span>
                     </div>
                     <div class="flex justify-between text-gray-400 border-t border-gray-800 pt-2">
                         <span>Quantity</span>
@@ -259,25 +240,26 @@
         <script>
         function tradeExecutor() {
             return {
-                loading: false, error: '',
+                loading: false, priceLoading: false, error: '',
                 riskUsd: 10,
-                notional: 0, tp1Profit: 0, tp2Profit: null, qty: 0, rrTp1: null, rrTp2: null,
+                notional: 0, tp1Profit: 0, tp2Profit: 0, tp1Price: null, tp2Price: null, qty: 0,
                 pickMode: null,
                 entry: {{ (float) $signal->entry_price }},
                 sl:    {{ (float) $signal->sl_price }},
-                tp1:   {{ $signal->tp1_price ? (float) $signal->tp1_price : 'null' }},
-                tp2:   {{ $signal->tp2_price ? (float) $signal->tp2_price : 'null' }},
-                init() {
-                    this.calc();
+                fetchPrice() {
+                    this.priceLoading = true;
                     fetch('https://api.mexc.com/api/v3/ticker/price?symbol={{ str_replace('/', '', $signal->pair) }}')
                         .then(r => r.json())
                         .then(d => { if (d.price) { this.entry = parseFloat(d.price); this.calc(); } })
-                        .catch(() => {});
+                        .catch(() => {})
+                        .finally(() => { this.priceLoading = false; });
+                },
+                init() {
+                    this.calc();
+                    this.fetchPrice();
                     window.addEventListener('chart-price-picked', (e) => {
                         const { field, price } = e.detail;
-                        if (field === 'sl')  this.sl  = price;
-                        if (field === 'tp1') this.tp1 = price;
-                        if (field === 'tp2') this.tp2 = price;
+                        if (field === 'sl') this.sl = price;
                         this.pickMode = null;
                         window.chartPickMode = null;
                         const el = document.getElementById('signal-chart');
@@ -293,15 +275,13 @@
                 },
                 calc() {
                     const slDist = this.entry - this.sl;
-                    if (slDist <= 0) { this.rrTp1 = null; this.rrTp2 = null; return; }
-                    this.qty      = this.riskUsd / slDist;
-                    this.notional = this.qty * this.entry;
-                    const tp1Qty  = this.tp2 ? this.qty * 0.70 : this.qty;
-                    const tp2Qty  = this.tp2 ? this.qty * 0.30 : 0;
-                    this.tp1Profit = (this.tp1 && this.tp1 > this.entry) ? tp1Qty * (this.tp1 - this.entry) : 0;
-                    this.tp2Profit = (this.tp2 && this.tp2 > this.entry) ? tp2Qty * (this.tp2 - this.entry) : null;
-                    this.rrTp1 = (this.tp1 && this.tp1 > this.entry) ? (this.tp1 - this.entry) / slDist : null;
-                    this.rrTp2 = (this.tp2 && this.tp2 > this.entry) ? (this.tp2 - this.entry) / slDist : null;
+                    if (slDist <= 0) { this.tp1Price = null; this.tp2Price = null; return; }
+                    this.qty       = this.riskUsd / slDist;
+                    this.notional  = this.qty * this.entry;
+                    this.tp1Price  = this.entry + slDist;
+                    this.tp2Price  = this.entry + 2 * slDist;
+                    this.tp1Profit = this.qty * 0.70 * slDist;
+                    this.tp2Profit = this.qty * 0.30 * 2 * slDist;
                 },
                 fmt(v) { return v != null ? Number(v).toFixed(2) : '0.00'; },
                 async submit() {
@@ -313,7 +293,7 @@
                                 'Content-Type': 'application/json',
                                 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
                             },
-                            body: JSON.stringify({ risk_usd: this.riskUsd, sl: this.sl, tp1: this.tp1, tp2: this.tp2 }),
+                            body: JSON.stringify({ risk_usd: this.riskUsd, sl: this.sl }),
                         });
                         const data = await r.json();
                         if (!r.ok) { this.error = data.message || 'Order placement failed.'; return; }

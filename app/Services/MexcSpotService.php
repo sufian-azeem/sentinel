@@ -15,19 +15,15 @@ class MexcSpotService
 
     private float $priceTick = 0.00000001;
 
-    public function __construct(private TradeCalculatorService $calculator) {}
+    public function __construct() {}
 
-    public function executeSignal(Signal $signal, float $riskUsd, float $sl, ?float $tp1, ?float $tp2): ExecutedTrade
+    public function executeSignal(Signal $signal, float $riskUsd, float $sl): ExecutedTrade
     {
-        $calc = $this->calculator->calculate(
-            entry: (float) $signal->entry_price,
-            sl: $sl,
-            tp1: $tp1,
-            tp2: $tp2,
-            riskUsd: $riskUsd,
-        );
         $symbol = $this->toSymbol($signal->pair);
         $this->loadSymbolFilters($symbol);
+
+        $entryEstimate = (float) $signal->entry_price;
+        $quantity = $riskUsd / ($entryEstimate - $sl);
 
         $trade = ExecutedTrade::create([
             'signal_id' => $signal->id,
@@ -36,18 +32,16 @@ class MexcSpotService
             'side' => 'long',
             'order_type' => 'market',
             'leverage' => 1,
-            'quantity' => $calc['quantity'],
-            'notional_usd' => $calc['notional_usd'],
-            'entry_price' => $signal->entry_price,
+            'quantity' => $quantity,
+            'notional_usd' => $quantity * $entryEstimate,
+            'entry_price' => $entryEstimate,
             'sl_price' => $sl,
-            'tp1_price' => $tp1,
-            'tp2_price' => $tp2,
             'status' => 'pending',
         ]);
 
         // Phase 1: market buy — if this fails, nothing was purchased; delete the record.
         try {
-            $entry = $this->placeMarketBuy($symbol, $calc['quantity']);
+            $entry = $this->placeMarketBuy($symbol, $quantity);
         } catch (\Throwable $e) {
             $trade->delete();
             throw $e;
@@ -57,41 +51,41 @@ class MexcSpotService
         $quoteQty = (float) ($entry['cummulativeQuoteQty'] ?? 0);
         $fillPrice = ($execQty > 0 && $quoteQty > 0)
             ? $quoteQty / $execQty
-            : (float) $signal->entry_price;
+            : $entryEstimate;
+
+        // TP1 = 1:1, TP2 = 1:2 from actual fill price
+        $slDist = $fillPrice - $sl;
+        $tp1 = $fillPrice + $slDist;
+        $tp2 = $fillPrice + 2 * $slDist;
 
         $trade->update([
             'exchange_order_id' => (string) $entry['orderId'],
             'entry_fill_status' => ($entry['status'] ?? '') === 'FILLED' ? 'filled' : 'pending',
             'entry_price' => $fillPrice,
-            'notional_usd' => $fillPrice * $execQty ?: $fillPrice * $calc['quantity'],
+            'notional_usd' => $quoteQty ?: $fillPrice * $quantity,
+            'tp1_price' => $tp1,
+            'tp2_price' => $tp2,
         ]);
 
         // Phase 2: OCO orders — if this fails, we own the asset; keep the record as cancelled.
         try {
-            if ($tp2 && $tp1) {
-                $oco1 = $this->placeOco($symbol, $calc['tp1_qty'], $tp1, $sl);
-                $oco2 = $this->placeOco($symbol, $calc['tp2_qty'], $tp2, $sl);
+            $tp1Qty = $quantity * 0.70;
+            $tp2Qty = $quantity * 0.30;
 
-                $trade->update([
-                    'tp1_order_id' => (string) $oco1['tp_order_id'],
-                    'sl_order_id' => (string) $oco1['sl_order_id'],
-                    'tp2_order_id' => (string) $oco2['tp_order_id'],
-                    'trailing_tp_json' => [
-                        'oco2_list_id' => (string) $oco2['order_list_id'],
-                        'oco2_sl_id' => (string) $oco2['sl_order_id'],
-                        'oco2_tp_id' => (string) $oco2['tp_order_id'],
-                    ],
-                    'status' => 'open',
-                ]);
-            } elseif ($tp1) {
-                $oco = $this->placeOco($symbol, $calc['tp1_qty'], $tp1, $sl);
+            $oco1 = $this->placeOco($symbol, $tp1Qty, $tp1, $sl);
+            $oco2 = $this->placeOco($symbol, $tp2Qty, $tp2, $sl);
 
-                $trade->update([
-                    'tp1_order_id' => (string) $oco['tp_order_id'],
-                    'sl_order_id' => (string) $oco['sl_order_id'],
-                    'status' => 'open',
-                ]);
-            }
+            $trade->update([
+                'tp1_order_id' => (string) $oco1['tp_order_id'],
+                'sl_order_id' => (string) $oco1['sl_order_id'],
+                'tp2_order_id' => (string) $oco2['tp_order_id'],
+                'trailing_tp_json' => [
+                    'oco2_list_id' => (string) $oco2['order_list_id'],
+                    'oco2_sl_id' => (string) $oco2['sl_order_id'],
+                    'oco2_tp_id' => (string) $oco2['tp_order_id'],
+                ],
+                'status' => 'open',
+            ]);
         } catch (\Throwable $e) {
             $trade->update(['status' => 'cancelled', 'notes' => $e->getMessage()]);
             throw $e;
