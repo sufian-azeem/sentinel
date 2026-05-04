@@ -78,7 +78,7 @@
     </div>
     @endif
 
-    @if(in_array($signal->status, ['active', 'tp1_hit']) && $signal->entry_type === 'long' && $signal->sl_price && !$signal->executedTrades->where('status', 'open')->count())
+    @if(in_array($signal->status, ['active', 'tp1_hit']) && $signal->sl_price && !$signal->executedTrades->where('status', 'open')->count())
     <div x-data="tradeExecutor()" class="bg-gray-900 border border-gray-800 rounded-lg p-4 mb-6">
         <div class="flex items-center justify-between">
             <h2 class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Execute on MEXC Spot</h2>
