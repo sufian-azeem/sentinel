@@ -254,12 +254,17 @@
                         .catch(() => {})
                         .finally(() => { this.priceLoading = false; });
                 },
+                priceDec() {
+                    const s = this.entry.toString();
+                    const dot = s.indexOf('.');
+                    return dot >= 0 ? s.length - dot - 1 : 0;
+                },
+                roundPrice(p) { return parseFloat(p.toFixed(this.priceDec())); },
                 init() {
                     this.calc();
                     this.fetchPrice();
                     window.addEventListener('chart-price-picked', (e) => {
-                        const { field, price } = e.detail;
-                        if (field === 'sl') this.sl = price;
+                        if (e.detail.field === 'sl') this.sl = this.roundPrice(e.detail.price);
                         this.pickMode = null;
                         window.chartPickMode = null;
                         const el = document.getElementById('signal-chart');

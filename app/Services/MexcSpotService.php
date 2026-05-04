@@ -23,6 +23,7 @@ class MexcSpotService
         $this->loadSymbolFilters($symbol);
 
         $entryEstimate = (float) $signal->entry_price;
+        $sl = (float) $this->formatPrice($sl); // snap to tick size before any math
         $quantity = $riskUsd / ($entryEstimate - $sl);
 
         $trade = ExecutedTrade::create([
