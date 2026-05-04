@@ -282,6 +282,7 @@
                     this.tp2Price  = this.entry + 2 * slDist;
                     this.tp1Profit = this.qty * 0.70 * slDist;
                     this.tp2Profit = this.qty * 0.30 * 2 * slDist;
+                    window.dispatchEvent(new CustomEvent('chart-tps-updated', { detail: { tp1: this.tp1Price, tp2: this.tp2Price } }));
                 },
                 fmt(v) { return v != null ? Number(v).toFixed(2) : '0.00'; },
                 async submit() {
@@ -472,24 +473,39 @@
                         .setData(data.lips.map(function (p) { return { time: p.t, value: p.v }; }));
 
                 var sig = data.signal || {};
-                if (sig.entry) cs.createPriceLine({ price: sig.entry, color: '#d1d5db', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed, title: 'Entry', axisLabelVisible: true });
-                var slLine  = sig.sl  ? cs.createPriceLine({ price: sig.sl,  color: '#ef4444', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed, title: 'SL',  axisLabelVisible: true }) : null;
-                var tp1Line = sig.tp1 ? cs.createPriceLine({ price: sig.tp1, color: '#10b981', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed, title: 'TP1', axisLabelVisible: true }) : null;
-                var tp2Line = sig.tp2 ? cs.createPriceLine({ price: sig.tp2, color: '#34d399', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed, title: 'TP2', axisLabelVisible: true }) : null;
 
-                // Chart click → price pick mode
+                @php $openTrade = $signal->executedTrades->where('status', 'open')->first(); @endphp
+                @if($openTrade)
+                // Use executed trade prices instead of signal candle prices
+                sig = Object.assign({}, sig, {
+                    entry: {{ (float) $openTrade->entry_price }},
+                    sl:    {{ (float) $openTrade->sl_price }},
+                    tp1:   {{ $openTrade->tp1_price ? (float) $openTrade->tp1_price : 'null' }},
+                    tp2:   {{ $openTrade->tp2_price ? (float) $openTrade->tp2_price : 'null' }},
+                });
+                @endif
+
+                var entryLine = sig.entry ? cs.createPriceLine({ price: sig.entry, color: '#d1d5db', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed, title: 'Entry', axisLabelVisible: true }) : null;
+                var slLine    = sig.sl    ? cs.createPriceLine({ price: sig.sl,    color: '#ef4444', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed, title: 'SL',    axisLabelVisible: true }) : null;
+                var tp1Line   = sig.tp1   ? cs.createPriceLine({ price: sig.tp1,   color: '#10b981', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed, title: 'TP1',   axisLabelVisible: true }) : null;
+                var tp2Line   = sig.tp2   ? cs.createPriceLine({ price: sig.tp2,   color: '#34d399', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed, title: 'TP2',   axisLabelVisible: true }) : null;
+
+                // Chart click → SL pick mode; auto-recalculate TP1 (1:1) / TP2 (1:2) lines
                 window.chartPickMode = null;
                 chart.subscribeClick(function (param) {
                     if (!window.chartPickMode || !param.point) return;
                     var price = cs.coordinateToPrice(param.point.y);
                     if (!price) return;
-                    var field = window.chartPickMode;
                     window.chartPickMode = null;
-                    // Update the price line on the chart
-                    if (field === 'sl' && slLine)   slLine.applyOptions({ price: price });
-                    if (field === 'tp1' && tp1Line) tp1Line.applyOptions({ price: price });
-                    if (field === 'tp2' && tp2Line) tp2Line.applyOptions({ price: price });
-                    window.dispatchEvent(new CustomEvent('chart-price-picked', { detail: { field: field, price: price } }));
+                    if (slLine) slLine.applyOptions({ price: price });
+                    window.dispatchEvent(new CustomEvent('chart-price-picked', { detail: { field: 'sl', price: price } }));
+                });
+
+                // Update TP lines when SL changes (typed or chart-picked)
+                window.addEventListener('chart-tps-updated', function (e) {
+                    var tp1 = e.detail.tp1, tp2 = e.detail.tp2;
+                    if (tp1Line) { tp1Line.applyOptions({ price: tp1 }); } else { tp1Line = cs.createPriceLine({ price: tp1, color: '#10b981', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed, title: 'TP1', axisLabelVisible: true }); }
+                    if (tp2Line) { tp2Line.applyOptions({ price: tp2 }); } else { tp2Line = cs.createPriceLine({ price: tp2, color: '#34d399', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed, title: 'TP2', axisLabelVisible: true }); }
                 });
 
                 var markers = [];
