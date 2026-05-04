@@ -10,6 +10,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.3",
+        "ccxt/ccxt": "^1.53",
         "laravel/framework": "^13.0",
         "laravel/pulse": "^1.7",
         "laravel/tinker": "^3.0",
