@@ -11,9 +11,11 @@ class MexcSpotService
 {
     private const BASE_URL = 'https://api.mexc.com';
 
+    public function __construct(private TradeCalculatorService $calculator) {}
+
     public function executeSignal(Signal $signal, float $riskUsd): ExecutedTrade
     {
-        $calc = (new TradeCalculatorService)->calculate(
+        $calc = $this->calculator->calculate(
             entry: (float) $signal->entry_price,
             sl: (float) $signal->sl_price,
             tp1: $signal->tp1_price ? (float) $signal->tp1_price : null,
@@ -47,20 +49,8 @@ class MexcSpotService
             ]);
 
             if ($signal->tp2_price) {
-                // OCO #1: 70% at TP1 + SL
-                $oco1 = $this->placeOco(
-                    $symbol,
-                    $calc['tp1_qty'],
-                    (float) $signal->tp1_price,
-                    (float) $signal->sl_price,
-                );
-                // OCO #2: 30% at TP2 + SL
-                $oco2 = $this->placeOco(
-                    $symbol,
-                    $calc['tp2_qty'],
-                    (float) $signal->tp2_price,
-                    (float) $signal->sl_price,
-                );
+                $oco1 = $this->placeOco($symbol, $calc['tp1_qty'], (float) $signal->tp1_price, (float) $signal->sl_price);
+                $oco2 = $this->placeOco($symbol, $calc['tp2_qty'], (float) $signal->tp2_price, (float) $signal->sl_price);
 
                 $trade->update([
                     'tp1_order_id' => (string) $oco1['tp_order_id'],
@@ -74,13 +64,7 @@ class MexcSpotService
                     'status' => 'open',
                 ]);
             } else {
-                // Single OCO: 100% at TP1 + SL
-                $oco = $this->placeOco(
-                    $symbol,
-                    $calc['tp1_qty'],
-                    (float) $signal->tp1_price,
-                    (float) $signal->sl_price,
-                );
+                $oco = $this->placeOco($symbol, $calc['tp1_qty'], (float) $signal->tp1_price, (float) $signal->sl_price);
 
                 $trade->update([
                     'tp1_order_id' => (string) $oco['tp_order_id'],
@@ -93,7 +77,7 @@ class MexcSpotService
             throw $e;
         }
 
-        return $trade->fresh();
+        return $trade;
     }
 
     public function moveBreakeven(ExecutedTrade $trade): void
@@ -101,23 +85,13 @@ class MexcSpotService
         $symbol = $this->toSymbol($trade->pair);
         $meta = $trade->trailing_tp_json ?? [];
 
-        $oco2SlId = $meta['oco2_sl_id'] ?? null;
-        $oco2TpId = $meta['oco2_tp_id'] ?? null;
-
-        // Cancel the existing OCO #2 legs individually
-        if ($oco2SlId) {
-            $this->cancelOrder($symbol, $oco2SlId);
+        foreach (array_filter([$meta['oco2_sl_id'] ?? null, $meta['oco2_tp_id'] ?? null]) as $orderId) {
+            $this->cancelOrder($symbol, $orderId);
         }
-        if ($oco2TpId && $oco2TpId !== $oco2SlId) {
-            $this->cancelOrder($symbol, $oco2TpId);
-        }
-
-        // Place new OCO #2: TP2 limit + break-even SL at entry price
-        $tp2Qty = (float) $trade->quantity * 0.30;
 
         $newOco2 = $this->placeOco(
             $symbol,
-            $tp2Qty,
+            (float) $trade->quantity * 0.30,
             (float) $trade->tp2_price,
             (float) $trade->entry_price,
         );
@@ -145,8 +119,6 @@ class MexcSpotService
     }
 
     /**
-     * Place an OCO order (limit sell at tpPrice + stop-loss sell at slPrice).
-     *
      * @return array{order_list_id: string, tp_order_id: string, sl_order_id: string}
      */
     private function placeOco(string $symbol, float $quantity, float $tpPrice, float $slPrice): array
@@ -162,21 +134,20 @@ class MexcSpotService
         ]);
 
         $orders = $response['orderReports'] ?? $response['orders'] ?? [];
-
-        // MEXC OCO returns orders: [0] = LIMIT (TP), [1] = STOP_LOSS_LIMIT (SL)
         $tpOrderId = null;
         $slOrderId = null;
 
         foreach ($orders as $order) {
-            if (($order['type'] ?? '') === 'LIMIT_MAKER' || ($order['type'] ?? '') === 'LIMIT') {
+            $type = $order['type'] ?? '';
+            if ($type === 'LIMIT_MAKER' || $type === 'LIMIT') {
                 $tpOrderId = (string) $order['orderId'];
             } else {
                 $slOrderId = (string) $order['orderId'];
             }
         }
 
+        // MEXC OCO: positional fallback — [0] LIMIT (TP), [1] STOP_LOSS_LIMIT (SL)
         if (! $tpOrderId || ! $slOrderId) {
-            // Fallback: positional
             $tpOrderId = (string) ($orders[0]['orderId'] ?? '');
             $slOrderId = (string) ($orders[1]['orderId'] ?? '');
         }
@@ -191,10 +162,7 @@ class MexcSpotService
     private function cancelOrder(string $symbol, string $orderId): bool
     {
         try {
-            $this->request('DELETE', '/api/v3/order', [
-                'symbol' => $symbol,
-                'orderId' => $orderId,
-            ]);
+            $this->request('DELETE', '/api/v3/order', ['symbol' => $symbol, 'orderId' => $orderId]);
 
             return true;
         } catch (\Throwable) {
@@ -215,13 +183,11 @@ class MexcSpotService
         $params['recvWindow'] = '5000';
 
         $queryString = http_build_query($params);
-        $signature = hash_hmac('sha256', $queryString, $apiSecret);
-        $queryString .= '&signature='.$signature;
+        $queryString .= '&signature='.hash_hmac('sha256', $queryString, $apiSecret);
 
-        $url = self::BASE_URL.$path.'?'.$queryString;
         $response = Http::timeout(10)
             ->withHeaders(['X-MEXC-APIKEY' => $apiKey])
-            ->$method($url);
+            ->$method(self::BASE_URL.$path.'?'.$queryString);
 
         if (! $response->successful()) {
             $body = $response->json();

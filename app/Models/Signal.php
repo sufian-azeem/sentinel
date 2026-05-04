@@ -56,6 +56,11 @@ class Signal extends Model
         return Carbon::parse($value, 'UTC')->setTimezone(config('app.timezone'));
     }
 
+    public function isActive(): bool
+    {
+        return in_array($this->status, ['active', 'tp1_hit']);
+    }
+
     public function scopeActive(Builder $query): void
     {
         $query->whereIn('status', ['active', 'tp1_hit']);

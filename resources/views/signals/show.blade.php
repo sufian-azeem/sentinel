@@ -16,7 +16,7 @@
     </div>
     @endif
 
-    @if(in_array($signal->status, ['active', 'tp1_hit']))
+    @if($signal->isActive())
     <div class="bg-gray-900 border border-gray-800 rounded-lg p-4 mb-6"
          x-data="{
             selected: '',
@@ -41,7 +41,7 @@
                     TP1 Hit @ {{ number_format((float)$signal->tp1_price, 6) }}
                 </button>
                 @endif
-                @if($signal->tp2_price && in_array($signal->status, ['active', 'tp1_hit']))
+                @if($signal->tp2_price && $signal->isActive())
                 <button type="button" @click="select('tp2_hit')"
                         :class="selected === 'tp2_hit' ? 'border-emerald-500/60 bg-emerald-500/15 text-emerald-400' : 'border-gray-700 text-gray-500 hover:border-gray-600 hover:text-gray-300'"
                         class="px-3 py-1.5 rounded border text-xs font-medium transition-colors">
@@ -78,7 +78,7 @@
     </div>
     @endif
 
-    @if(in_array($signal->status, ['active', 'tp1_hit']) && $signal->sl_price && !$signal->executedTrades->where('status', 'open')->count())
+    @if($signal->isActive() && $signal->sl_price && $signal->executedTrades->where('status', 'open')->isEmpty())
     <div x-data="tradeExecutor()" class="bg-gray-900 border border-gray-800 rounded-lg p-4 mb-6">
         <div class="flex items-center justify-between">
             <h2 class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Execute on MEXC Spot</h2>
@@ -147,15 +147,15 @@
             tp1:   {{ $signal->tp1_price ? (float) $signal->tp1_price : 'null' }},
             tp2:   {{ $signal->tp2_price ? (float) $signal->tp2_price : 'null' }},
             init() {
-            this.calc();
-            window.addEventListener('chart-price-picked', (e) => {
-                var { field, price } = e.detail;
-                if (field === 'sl')  this.sl  = price;
-                if (field === 'tp1') this.tp1 = price;
-                if (field === 'tp2') this.tp2 = price;
                 this.calc();
-            });
-        },
+                window.addEventListener('chart-price-picked', (e) => {
+                    const { field, price } = e.detail;
+                    if (field === 'sl')  this.sl  = price;
+                    if (field === 'tp1') this.tp1 = price;
+                    if (field === 'tp2') this.tp2 = price;
+                    this.calc();
+                });
+            },
             calc() {
                 const slDist = Math.abs(this.entry - this.sl);
                 if (!slDist) return;
@@ -235,7 +235,7 @@
         <div class="px-4 py-2.5 border-b border-gray-800 flex items-center justify-between">
             <span class="text-xs text-gray-500 font-semibold uppercase tracking-wider">{{ $signal->timeframe }} Chart · Alligator</span>
             <div class="flex items-center gap-3">
-                @if(in_array($signal->status, ['active', 'tp1_hit']) && $signal->sl_price && !$signal->executedTrades->where('status', 'open')->count())
+                @if($signal->isActive() && $signal->sl_price && $signal->executedTrades->where('status', 'open')->isEmpty())
                 <div x-data="chartPicker()" class="flex items-center gap-1" id="chart-picker">
                     <button @click="pick('sl')"
                             :class="mode==='sl' ? 'border-red-500 text-red-400' : 'border-gray-700 text-gray-600 hover:border-gray-500 hover:text-gray-400'"

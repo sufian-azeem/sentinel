@@ -119,7 +119,7 @@ class SignalController extends Controller
 
     public function execute(Request $request, Signal $signal, MexcSpotService $mexc): JsonResponse
     {
-        abort_if(! in_array($signal->status, ['active', 'tp1_hit']), 422, 'Signal is already closed.');
+        abort_if(! $signal->isActive(), 422, 'Signal is already closed.');
         abort_if(! $signal->sl_price, 422, 'Signal has no SL price.');
 
         $request->validate([

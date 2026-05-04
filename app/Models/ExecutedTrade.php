@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -61,6 +62,11 @@ class ExecutedTrade extends Model
         'exit_filled_at' => 'datetime',
         'breakeven_moved_at' => 'datetime',
     ];
+
+    public function scopeOpen(Builder $query): void
+    {
+        $query->where('status', 'open');
+    }
 
     public function signal(): BelongsTo
     {
