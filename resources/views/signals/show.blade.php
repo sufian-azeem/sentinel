@@ -257,7 +257,7 @@
                 <span class="text-[10px] text-gray-700">{{ $signal->pairScan?->exchange }}</span>
             </div>
         </div>
-        <div id="signal-chart" class="w-full relative" style="height:380px;">
+        <div id="signal-chart" class="w-full relative" style="height:760px;">
             <div id="chart-loading" class="absolute inset-0 flex items-center justify-center text-xs text-gray-600">
                 Loading chart…
             </div>
