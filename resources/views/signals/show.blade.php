@@ -125,11 +125,17 @@
                         <span class="text-red-400 font-medium" x-text="'−$' + fmt(riskUsd)"></span>
                     </div>
                     <div class="flex justify-between text-gray-400">
-                        <span>TP1 profit</span>
+                        <span class="flex items-center gap-1.5">TP1 profit
+                            <span x-show="rrTp1" class="px-1 py-0 rounded text-[10px] font-mono bg-emerald-900/40 text-emerald-500 border border-emerald-800/50"
+                                  x-text="rrTp1 ? '1:' + rrTp1.toFixed(2) : ''"></span>
+                        </span>
                         <span class="text-emerald-400 font-medium" x-text="tp1Profit ? '+$' + fmt(tp1Profit) : '—'"></span>
                     </div>
                     <div class="flex justify-between text-gray-400">
-                        <span>TP2 profit</span>
+                        <span class="flex items-center gap-1.5">TP2 profit
+                            <span x-show="rrTp2" class="px-1 py-0 rounded text-[10px] font-mono bg-emerald-900/40 text-emerald-500 border border-emerald-800/50"
+                                  x-text="rrTp2 ? '1:' + rrTp2.toFixed(2) : ''"></span>
+                        </span>
                         <span class="text-emerald-400 font-medium" x-text="tp2Profit !== null ? '+$' + fmt(tp2Profit) : '—'"></span>
                     </div>
                     <div class="flex justify-between text-gray-400 border-t border-gray-800 pt-2">
@@ -157,7 +163,7 @@
         return {
             open: false, loading: false, error: '',
             riskUsd: 10,
-            notional: 0, tp1Profit: 0, tp2Profit: null, qty: 0,
+            notional: 0, tp1Profit: 0, tp2Profit: null, qty: 0, rrTp1: null, rrTp2: null,
             entry: {{ (float) $signal->entry_price }},
             sl:    {{ (float) $signal->sl_price }},
             tp1:   {{ $signal->tp1_price ? (float) $signal->tp1_price : 'null' }},
@@ -181,6 +187,8 @@
                 const tp2Qty  = this.tp2 ? this.qty * 0.30 : 0;
                 this.tp1Profit = this.tp1 ? tp1Qty * Math.abs(this.tp1 - this.entry) : 0;
                 this.tp2Profit = this.tp2 ? tp2Qty * Math.abs(this.tp2 - this.entry) : null;
+                this.rrTp1 = this.tp1 ? Math.abs(this.tp1 - this.entry) / slDist : null;
+                this.rrTp2 = this.tp2 ? Math.abs(this.tp2 - this.entry) / slDist : null;
             },
             fmt(v) { return (v != null ? Number(v).toFixed(2) : '0.00'); },
             async submit() {
@@ -228,20 +236,66 @@
     </script>
     @endif
 
-    @foreach($signal->executedTrades->where('status', 'open') as $trade)
+    @foreach($signal->executedTrades->sortByDesc('id') as $trade)
     <div class="bg-gray-900 border border-gray-800 rounded-lg p-4 mb-6 text-xs">
         <div class="flex items-center justify-between mb-3">
-            <h2 class="font-semibold text-gray-400 uppercase tracking-wider">Open MEXC Trade</h2>
-            <span class="px-2 py-0.5 rounded border border-emerald-600/40 bg-emerald-500/10 text-emerald-400">{{ strtoupper($trade->status) }}</span>
+            <h2 class="font-semibold text-gray-400 uppercase tracking-wider">MEXC Trade</h2>
+            <div class="flex items-center gap-2">
+                @if($trade->breakeven_moved_at)
+                <span class="px-2 py-0.5 rounded border border-amber-600/40 bg-amber-500/10 text-amber-400">BE Moved</span>
+                @endif
+                @php
+                    $statusColors = match($trade->status) {
+                        'open'      => 'border-emerald-600/40 bg-emerald-500/10 text-emerald-400',
+                        'pending'   => 'border-yellow-600/40 bg-yellow-500/10 text-yellow-400',
+                        'cancelled' => 'border-red-600/40 bg-red-500/10 text-red-400',
+                        default     => 'border-gray-600/40 bg-gray-500/10 text-gray-400',
+                    };
+                @endphp
+                <span class="px-2 py-0.5 rounded border {{ $statusColors }}">{{ strtoupper($trade->status) }}</span>
+            </div>
         </div>
-        <div class="grid grid-cols-2 gap-x-6 gap-y-1.5 text-gray-500">
-            <div>Entry order <span class="text-gray-300 font-mono">{{ $trade->exchange_order_id ?? '—' }}</span></div>
-            <div>Qty <span class="text-gray-300">{{ number_format((float) $trade->quantity, 4) }}</span></div>
-            <div>SL order <span class="text-gray-300 font-mono">{{ $trade->sl_order_id ?? '—' }}</span></div>
-            <div>TP1 order <span class="text-gray-300 font-mono">{{ $trade->tp1_order_id ?? '—' }}</span></div>
-            <div>TP2 order <span class="text-gray-300 font-mono">{{ $trade->tp2_order_id ?? '—' }}</span></div>
+
+        {{-- Prices row --}}
+        <div class="grid grid-cols-4 gap-3 mb-3 p-3 bg-gray-800/50 rounded">
+            <div>
+                <div class="text-gray-600 mb-0.5">Entry</div>
+                <div class="text-gray-200 font-semibold font-mono">{{ number_format((float) $trade->entry_price, 6) }}</div>
+            </div>
+            <div>
+                <div class="text-gray-600 mb-0.5">Stop Loss</div>
+                <div class="text-red-400 font-semibold font-mono">{{ $trade->sl_price ? number_format((float) $trade->sl_price, 6) : '—' }}</div>
+            </div>
+            <div>
+                <div class="text-gray-600 mb-0.5">TP1 <span class="text-gray-700">(70%)</span></div>
+                <div class="text-emerald-400 font-semibold font-mono">{{ $trade->tp1_price ? number_format((float) $trade->tp1_price, 6) : '—' }}</div>
+            </div>
+            <div>
+                <div class="text-gray-600 mb-0.5">TP2 <span class="text-gray-700">(30%)</span></div>
+                <div class="text-emerald-300 font-semibold font-mono">{{ $trade->tp2_price ? number_format((float) $trade->tp2_price, 6) : '—' }}</div>
+            </div>
+        </div>
+
+        {{-- Size row --}}
+        <div class="flex gap-6 mb-3 text-gray-500">
+            <div>Qty <span class="text-gray-300">{{ rtrim(number_format((float) $trade->quantity, 8), '0') }}</span></div>
+            <div>Invested <span class="text-gray-300">${{ number_format((float) $trade->notional_usd, 2) }}</span></div>
+            @if($trade->entry_filled_at)
+            <div>Filled <span class="text-gray-300"><x-timestamp :value="$trade->entry_filled_at" format="M d, g:i A" /></span></div>
+            @endif
+        </div>
+
+        {{-- Order IDs --}}
+        <div class="grid grid-cols-2 gap-x-6 gap-y-1 text-gray-600 border-t border-gray-800 pt-2">
+            <div>Entry order <span class="font-mono text-gray-500">{{ $trade->exchange_order_id ?? '—' }}</span></div>
+            <div>SL order <span class="font-mono text-gray-500">{{ $trade->sl_order_id ?? '—' }}</span></div>
+            <div>TP1 order <span class="font-mono text-gray-500">{{ $trade->tp1_order_id ?? '—' }}</span></div>
+            <div>TP2 order <span class="font-mono text-gray-500">{{ $trade->tp2_order_id ?? '—' }}</span></div>
             @if($trade->breakeven_moved_at)
-            <div class="col-span-2 text-amber-500">Break-even moved at <x-timestamp :value="$trade->breakeven_moved_at" format="M d, g:i A" /></div>
+            <div class="col-span-2 text-amber-600">Break-even moved <x-timestamp :value="$trade->breakeven_moved_at" format="M d, g:i A" /></div>
+            @endif
+            @if($trade->notes)
+            <div class="col-span-2 text-red-500 mt-1">{{ $trade->notes }}</div>
             @endif
         </div>
     </div>
