@@ -170,7 +170,13 @@
         {{-- Execute panel --}}
         <div x-data="tradeExecutor()" class="lg:w-72 lg:flex-shrink-0 lg:sticky lg:top-4">
             <div class="bg-gray-900 border border-gray-800 rounded-lg p-4">
-                <h2 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Execute on MEXC Spot</h2>
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Execute on MEXC Spot</h2>
+                    <span class="text-xs text-gray-500">
+                        <span class="text-gray-600">Now</span>
+                        <span x-text="entry ? entry.toPrecision(6) : '…'" class="text-gray-300 font-mono ml-1"></span>
+                    </span>
+                </div>
 
                 <div class="mb-3">
                     <label class="text-xs text-gray-500 mb-1 block">Risk (USD)</label>
@@ -263,6 +269,10 @@
                 tp2:   {{ $signal->tp2_price ? (float) $signal->tp2_price : 'null' }},
                 init() {
                     this.calc();
+                    fetch('https://api.mexc.com/api/v3/ticker/price?symbol={{ str_replace('/', '', $signal->pair) }}')
+                        .then(r => r.json())
+                        .then(d => { if (d.price) { this.entry = parseFloat(d.price); this.calc(); } })
+                        .catch(() => {});
                     window.addEventListener('chart-price-picked', (e) => {
                         const { field, price } = e.detail;
                         if (field === 'sl')  this.sl  = price;
