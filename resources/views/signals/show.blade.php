@@ -92,14 +92,30 @@
             <div @click.outside="open = false" class="bg-gray-900 border border-gray-700 rounded-lg p-6 w-full max-w-sm mx-4">
                 <h3 class="text-sm font-semibold text-gray-200 mb-4">Execute Signal on MEXC</h3>
 
-                <div class="mb-4">
-                    <label class="text-xs text-gray-500 mb-1 block">Risk Amount (USD)</label>
-                    <input type="number" x-model.number="riskUsd" @input="calc()"
-                           min="1" step="0.5"
-                           class="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-gray-500">
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <div>
+                        <label class="text-xs text-gray-500 mb-1 block">Risk (USD)</label>
+                        <input type="number" x-model.number="riskUsd" @input="calc()" min="1" step="0.5"
+                               class="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-gray-500">
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-500 mb-1 block">Stop Loss</label>
+                        <input type="number" x-model.number="sl" @input="calc()" step="any"
+                               class="w-full bg-gray-800 border border-red-900/60 rounded px-3 py-2 text-sm text-red-300 focus:outline-none focus:border-red-600">
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-500 mb-1 block">TP1 <span class="text-gray-600">(70%)</span></label>
+                        <input type="number" x-model.number="tp1" @input="calc()" step="any"
+                               class="w-full bg-gray-800 border border-emerald-900/60 rounded px-3 py-2 text-sm text-emerald-300 focus:outline-none focus:border-emerald-600">
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-500 mb-1 block">TP2 <span class="text-gray-600">(30%)</span></label>
+                        <input type="number" x-model.number="tp2" @input="calc()" step="any"
+                               class="w-full bg-gray-800 border border-emerald-900/40 rounded px-3 py-2 text-sm text-emerald-400/70 focus:outline-none focus:border-emerald-700">
+                    </div>
                 </div>
 
-                <div class="space-y-2 mb-5 text-xs">
+                <div class="space-y-2 mb-5 text-xs border-t border-gray-800 pt-4">
                     <div class="flex justify-between text-gray-400">
                         <span>Investment required</span>
                         <span class="text-gray-200 font-medium" x-text="fmt(notional) + ' USDT'"></span>
@@ -109,11 +125,11 @@
                         <span class="text-red-400 font-medium" x-text="'−$' + fmt(riskUsd)"></span>
                     </div>
                     <div class="flex justify-between text-gray-400">
-                        <span>TP1 profit <span class="text-gray-600">(70%)</span></span>
+                        <span>TP1 profit</span>
                         <span class="text-emerald-400 font-medium" x-text="tp1Profit ? '+$' + fmt(tp1Profit) : '—'"></span>
                     </div>
                     <div class="flex justify-between text-gray-400">
-                        <span>TP2 profit <span class="text-gray-600">(30%)</span></span>
+                        <span>TP2 profit</span>
                         <span class="text-emerald-400 font-medium" x-text="tp2Profit !== null ? '+$' + fmt(tp2Profit) : '—'"></span>
                     </div>
                     <div class="flex justify-between text-gray-400 border-t border-gray-800 pt-2">
