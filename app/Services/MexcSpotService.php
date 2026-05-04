@@ -45,13 +45,21 @@ class MexcSpotService
             'status' => 'pending',
         ]);
 
+        // Phase 1: market buy — if this fails, nothing was purchased; delete the record.
         try {
             $entry = $this->placeMarketBuy($symbol, $calc['quantity']);
-            $trade->update([
-                'exchange_order_id' => (string) $entry['orderId'],
-                'entry_fill_status' => 'pending',
-            ]);
+        } catch (\Throwable $e) {
+            $trade->delete();
+            throw $e;
+        }
 
+        $trade->update([
+            'exchange_order_id' => (string) $entry['orderId'],
+            'entry_fill_status' => 'pending',
+        ]);
+
+        // Phase 2: OCO orders — if this fails, we own the asset; keep the record as cancelled.
+        try {
             if ($tp2 && $tp1) {
                 $oco1 = $this->placeOco($symbol, $calc['tp1_qty'], $tp1, $sl);
                 $oco2 = $this->placeOco($symbol, $calc['tp2_qty'], $tp2, $sl);
