@@ -222,11 +222,22 @@ class MexcSpotService
             return;
         }
 
-        foreach ($response->json('symbols.0.filters', []) as $filter) {
-            if ($filter['filterType'] === 'LOT_SIZE' && isset($filter['stepSize'])) {
+        $info = $response->json('symbols.0', []);
+
+        // MEXC uses precision fields, not LOT_SIZE/PRICE_FILTER filters
+        if (isset($info['baseAssetPrecision'])) {
+            $this->qtyStep = 10 ** -(int) $info['baseAssetPrecision'];
+        }
+        if (isset($info['quotePrecision'])) {
+            $this->priceTick = 10 ** -(int) $info['quotePrecision'];
+        }
+
+        // Override with explicit filter values when present and non-zero
+        foreach ($info['filters'] ?? [] as $filter) {
+            if ($filter['filterType'] === 'LOT_SIZE' && (float) ($filter['stepSize'] ?? 0) > 0) {
                 $this->qtyStep = (float) $filter['stepSize'];
             }
-            if ($filter['filterType'] === 'PRICE_FILTER' && isset($filter['tickSize'])) {
+            if ($filter['filterType'] === 'PRICE_FILTER' && (float) ($filter['tickSize'] ?? 0) > 0) {
                 $this->priceTick = (float) $filter['tickSize'];
             }
         }
