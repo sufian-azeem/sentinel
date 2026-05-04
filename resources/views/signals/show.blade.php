@@ -154,7 +154,6 @@
                 if (field === 'tp1') this.tp1 = price;
                 if (field === 'tp2') this.tp2 = price;
                 this.calc();
-                this.open = true;
             });
         },
             calc() {
