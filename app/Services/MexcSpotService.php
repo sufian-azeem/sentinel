@@ -11,6 +11,10 @@ class MexcSpotService
 {
     private const BASE_URL = 'https://api.mexc.com';
 
+    private float $qtyStep = 0.00000001;
+
+    private float $priceTick = 0.00000001;
+
     public function __construct(private TradeCalculatorService $calculator) {}
 
     public function executeSignal(Signal $signal, float $riskUsd, float $sl, ?float $tp1, ?float $tp2): ExecutedTrade
@@ -23,6 +27,7 @@ class MexcSpotService
             riskUsd: $riskUsd,
         );
         $symbol = $this->toSymbol($signal->pair);
+        $this->loadSymbolFilters($symbol);
 
         $trade = ExecutedTrade::create([
             'signal_id' => $signal->id,
@@ -82,6 +87,7 @@ class MexcSpotService
     public function moveBreakeven(ExecutedTrade $trade): void
     {
         $symbol = $this->toSymbol($trade->pair);
+        $this->loadSymbolFilters($symbol);
         $meta = $trade->trailing_tp_json ?? [];
 
         foreach (array_filter([$meta['oco2_sl_id'] ?? null, $meta['oco2_tp_id'] ?? null]) as $orderId) {
@@ -197,6 +203,24 @@ class MexcSpotService
         return $response->json();
     }
 
+    private function loadSymbolFilters(string $symbol): void
+    {
+        $response = Http::timeout(10)->get(self::BASE_URL.'/api/v3/exchangeInfo', ['symbol' => $symbol]);
+
+        if (! $response->successful()) {
+            return;
+        }
+
+        foreach ($response->json('symbols.0.filters', []) as $filter) {
+            if ($filter['filterType'] === 'LOT_SIZE' && isset($filter['stepSize'])) {
+                $this->qtyStep = (float) $filter['stepSize'];
+            }
+            if ($filter['filterType'] === 'PRICE_FILTER' && isset($filter['tickSize'])) {
+                $this->priceTick = (float) $filter['tickSize'];
+            }
+        }
+    }
+
     private function toSymbol(string $pair): string
     {
         return str_replace('/', '', $pair);
@@ -204,11 +228,19 @@ class MexcSpotService
 
     private function formatQty(float $qty): string
     {
-        return rtrim(number_format($qty, 8, '.', ''), '0');
+        $step = $this->qtyStep;
+        $decimals = max(0, (int) ceil(-log10($step)));
+        $floored = floor($qty / $step) * $step;
+
+        return number_format($floored, $decimals, '.', '');
     }
 
     private function formatPrice(float $price): string
     {
-        return rtrim(number_format($price, 8, '.', ''), '0');
+        $tick = $this->priceTick;
+        $decimals = max(0, (int) ceil(-log10($tick)));
+        $rounded = round($price / $tick) * $tick;
+
+        return number_format($rounded, $decimals, '.', '');
     }
 }
