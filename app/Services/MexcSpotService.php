@@ -53,9 +53,17 @@ class MexcSpotService
             throw $e;
         }
 
+        $execQty = (float) ($entry['executedQty'] ?? 0);
+        $quoteQty = (float) ($entry['cummulativeQuoteQty'] ?? 0);
+        $fillPrice = ($execQty > 0 && $quoteQty > 0)
+            ? $quoteQty / $execQty
+            : (float) $signal->entry_price;
+
         $trade->update([
             'exchange_order_id' => (string) $entry['orderId'],
-            'entry_fill_status' => 'pending',
+            'entry_fill_status' => ($entry['status'] ?? '') === 'FILLED' ? 'filled' : 'pending',
+            'entry_price' => $fillPrice,
+            'notional_usd' => $fillPrice * $execQty ?: $fillPrice * $calc['quantity'],
         ]);
 
         // Phase 2: OCO orders — if this fails, we own the asset; keep the record as cancelled.
