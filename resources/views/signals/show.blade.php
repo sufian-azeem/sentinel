@@ -146,7 +146,17 @@
             sl:    {{ (float) $signal->sl_price }},
             tp1:   {{ $signal->tp1_price ? (float) $signal->tp1_price : 'null' }},
             tp2:   {{ $signal->tp2_price ? (float) $signal->tp2_price : 'null' }},
-            init() { this.calc(); },
+            init() {
+            this.calc();
+            window.addEventListener('chart-price-picked', (e) => {
+                var { field, price } = e.detail;
+                if (field === 'sl')  this.sl  = price;
+                if (field === 'tp1') this.tp1 = price;
+                if (field === 'tp2') this.tp2 = price;
+                this.calc();
+                this.open = true;
+            });
+        },
             calc() {
                 const slDist = Math.abs(this.entry - this.sl);
                 if (!slDist) return;
@@ -181,6 +191,25 @@
             },
         };
     }
+    function chartPicker() {
+        return {
+            mode: null,
+            pick(field) {
+                this.mode = this.mode === field ? null : field;
+                window.chartPickMode = this.mode;
+                var el = document.getElementById('signal-chart');
+                if (el) el.style.cursor = this.mode ? 'crosshair' : '';
+            },
+            init() {
+                window.addEventListener('chart-price-picked', () => {
+                    this.mode = null;
+                    window.chartPickMode = null;
+                    var el = document.getElementById('signal-chart');
+                    if (el) el.style.cursor = '';
+                });
+            },
+        };
+    }
     </script>
     @endif
 
@@ -207,6 +236,21 @@
         <div class="px-4 py-2.5 border-b border-gray-800 flex items-center justify-between">
             <span class="text-xs text-gray-500 font-semibold uppercase tracking-wider">{{ $signal->timeframe }} Chart · Alligator</span>
             <div class="flex items-center gap-3">
+                @if(in_array($signal->status, ['active', 'tp1_hit']) && $signal->sl_price && !$signal->executedTrades->where('status', 'open')->count())
+                <div x-data="chartPicker()" class="flex items-center gap-1" id="chart-picker">
+                    <button @click="pick('sl')"
+                            :class="mode==='sl' ? 'border-red-500 text-red-400' : 'border-gray-700 text-gray-600 hover:border-gray-500 hover:text-gray-400'"
+                            class="text-[10px] px-2 py-0.5 rounded border transition-colors">SL</button>
+                    <button @click="pick('tp1')"
+                            :class="mode==='tp1' ? 'border-emerald-500 text-emerald-400' : 'border-gray-700 text-gray-600 hover:border-gray-500 hover:text-gray-400'"
+                            class="text-[10px] px-2 py-0.5 rounded border transition-colors">TP1</button>
+                    @if($signal->tp2_price)
+                    <button @click="pick('tp2')"
+                            :class="mode==='tp2' ? 'border-emerald-400 text-emerald-300' : 'border-gray-700 text-gray-600 hover:border-gray-500 hover:text-gray-400'"
+                            class="text-[10px] px-2 py-0.5 rounded border transition-colors">TP2</button>
+                    @endif
+                </div>
+                @endif
                 <button id="chart-log-toggle"
                         class="text-[10px] px-2 py-0.5 rounded border border-gray-700 text-gray-600 hover:border-gray-500 hover:text-gray-400 transition-colors">
                     Log
@@ -383,9 +427,24 @@
 
                 var sig = data.signal || {};
                 if (sig.entry) cs.createPriceLine({ price: sig.entry, color: '#d1d5db', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed, title: 'Entry', axisLabelVisible: true });
-                if (sig.sl)    cs.createPriceLine({ price: sig.sl,    color: '#ef4444', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed, title: 'SL',    axisLabelVisible: true });
-                if (sig.tp1)   cs.createPriceLine({ price: sig.tp1,   color: '#10b981', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed, title: 'TP1',   axisLabelVisible: true });
-                if (sig.tp2)   cs.createPriceLine({ price: sig.tp2,   color: '#34d399', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed, title: 'TP2',   axisLabelVisible: true });
+                var slLine  = sig.sl  ? cs.createPriceLine({ price: sig.sl,  color: '#ef4444', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed, title: 'SL',  axisLabelVisible: true }) : null;
+                var tp1Line = sig.tp1 ? cs.createPriceLine({ price: sig.tp1, color: '#10b981', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed, title: 'TP1', axisLabelVisible: true }) : null;
+                var tp2Line = sig.tp2 ? cs.createPriceLine({ price: sig.tp2, color: '#34d399', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed, title: 'TP2', axisLabelVisible: true }) : null;
+
+                // Chart click → price pick mode
+                window.chartPickMode = null;
+                chart.subscribeClick(function (param) {
+                    if (!window.chartPickMode || !param.point) return;
+                    var price = cs.coordinateToPrice(param.point.y);
+                    if (!price) return;
+                    var field = window.chartPickMode;
+                    window.chartPickMode = null;
+                    // Update the price line on the chart
+                    if (field === 'sl' && slLine)   slLine.applyOptions({ price: price });
+                    if (field === 'tp1' && tp1Line) tp1Line.applyOptions({ price: price });
+                    if (field === 'tp2' && tp2Line) tp2Line.applyOptions({ price: price });
+                    window.dispatchEvent(new CustomEvent('chart-price-picked', { detail: { field: field, price: price } }));
+                });
 
                 var markers = [];
                 if (sig.candle_time) {
