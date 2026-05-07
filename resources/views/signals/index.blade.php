@@ -3,7 +3,7 @@
     <div class="flex items-center justify-between mb-6">
         <h1 class="text-lg font-bold text-gray-200 tracking-wide">Signals</h1>
         @if(request()->boolean('all'))
-            <a href="{{ route('signals.index', request()->except('all', 'page')) }}" class="text-xs text-gray-400 hover:text-gray-200">← By Day</a>
+            <a href="{{ route('signals.index', request()->except('all', 'page')) }}" class="text-xs text-gray-400 hover:text-gray-200">← By Scan</a>
         @else
             <a href="{{ route('signals.index', array_merge(request()->query(), ['all' => 1])) }}" class="text-xs text-gray-400 hover:text-gray-200">Show All →</a>
         @endif
@@ -35,23 +35,22 @@
         @endif
     </form>
 
-    @if($byDay !== null)
-        {{-- Grouped by day view --}}
-        @forelse($byDay as $date => $daySignals)
-            @php
-                $label = match(true) {
-                    $date === now()->toDateString()           => 'Today',
-                    $date === now()->subDay()->toDateString() => 'Yesterday',
-                    default => \Carbon\Carbon::parse($date)->format('M j, Y'),
-                };
-            @endphp
+    @if($byScan !== null)
+        {{-- Grouped by scan --}}
+        @forelse($byScan as $runId => $scanSignals)
+            @php $run = $scanSignals->first()->pairScan?->screenerRun; @endphp
             <div class="mb-6">
                 <div class="flex items-center gap-3 mb-2">
-                    <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">{{ $label }}</span>
-                    <span class="text-xs text-gray-600">{{ $daySignals->count() }} signal{{ $daySignals->count() === 1 ? '' : 's' }}</span>
+                    <span class="text-xs font-semibold text-gray-300">
+                        {{ $run ? $run->started_at->format('M j, Y — g:i A') : 'Unknown scan' }}
+                    </span>
+                    @if($run)
+                    <span class="text-xs text-gray-600">{{ $run->data_source }}</span>
+                    @endif
+                    <span class="text-xs text-gray-600">{{ $scanSignals->count() }} signal{{ $scanSignals->count() === 1 ? '' : 's' }}</span>
                     <div class="flex-1 border-t border-gray-800"></div>
                 </div>
-                @include('signals._table', ['signals' => $daySignals])
+                @include('signals._table', ['signals' => $scanSignals])
             </div>
         @empty
             <div class="bg-gray-900 border border-gray-800 rounded-lg px-4 py-8 text-center text-gray-600 text-xs">No signals found</div>

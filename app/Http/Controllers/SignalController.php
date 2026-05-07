@@ -31,12 +31,13 @@ class SignalController extends Controller
         if ($request->boolean('all')) {
             $signals = $query->paginate(50)->withQueryString();
 
-            return view('signals.index', ['signals' => $signals, 'byDay' => null]);
+            return view('signals.index', ['signals' => $signals, 'byScan' => null]);
         }
 
-        $byDay = $query->get()->groupBy(fn ($s) => $s->candle_time->toDateString());
+        $query->with('pairScan.screenerRun');
+        $byScan = $query->get()->groupBy(fn ($s) => $s->pairScan?->screener_run_id ?? 0);
 
-        return view('signals.index', ['signals' => null, 'byDay' => $byDay]);
+        return view('signals.index', ['signals' => null, 'byScan' => $byScan]);
     }
 
     public function show(Signal $signal)
