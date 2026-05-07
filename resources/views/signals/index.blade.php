@@ -2,10 +2,18 @@
 
     <div class="flex items-center justify-between mb-6">
         <h1 class="text-lg font-bold text-gray-200 tracking-wide">Signals</h1>
+        @if(request()->boolean('all'))
+            <a href="{{ route('signals.index', request()->except('all', 'page')) }}" class="text-xs text-gray-400 hover:text-gray-200">← By Day</a>
+        @else
+            <a href="{{ route('signals.index', array_merge(request()->query(), ['all' => 1])) }}" class="text-xs text-gray-400 hover:text-gray-200">Show All →</a>
+        @endif
     </div>
 
     {{-- Filters --}}
     <form method="GET" class="flex gap-3 mb-6 flex-wrap">
+        @if(request()->boolean('all'))
+            <input type="hidden" name="all" value="1">
+        @endif
         <input type="text" name="pair" value="{{ request('pair') }}"
                placeholder="Pair (e.g. BTC)"
                class="bg-gray-900 border border-gray-700 rounded px-3 py-1.5 text-xs text-gray-300 placeholder-gray-600 focus:outline-none focus:border-emerald-500 w-36">
@@ -23,66 +31,40 @@
         </select>
         <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-1.5 rounded text-xs">Filter</button>
         @if(request()->hasAny(['pair','tf','status']))
-        <a href="{{ route('signals.index') }}" class="px-4 py-1.5 rounded text-xs text-gray-400 hover:text-gray-200 border border-gray-700">Clear</a>
+        <a href="{{ route('signals.index', request()->boolean('all') ? ['all' => 1] : []) }}" class="px-4 py-1.5 rounded text-xs text-gray-400 hover:text-gray-200 border border-gray-700">Clear</a>
         @endif
     </form>
 
-    <div class="bg-gray-900 border border-gray-800 rounded-lg">
-        <div class="overflow-x-auto">
-        <table class="w-full text-xs">
-            <thead>
-                <tr class="text-gray-600 border-b border-gray-800">
-                    <th class="text-left px-4 py-3">Pair</th>
-                    <th class="text-left px-4 py-3">TF</th>
-                    <th class="text-left px-4 py-3">Type</th>
-                    <th class="text-right px-4 py-3">Entry</th>
-                    <th class="text-right px-4 py-3">SL</th>
-                    <th class="text-right px-4 py-3">TP1</th>
-                    <th class="text-right px-4 py-3">TP2</th>
-                    <th class="text-right px-4 py-3">Risk%</th>
-                    <th class="text-right px-4 py-3">Ago</th>
-                    <th class="text-left px-4 py-3">Status</th>
-                    <th class="text-left px-4 py-3"></th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse($signals as $signal)
-                @php
-                    $tvInterval = \App\Enums\Timeframe::tryFrom($signal->timeframe)?->tvInterval() ?? '60';
-                @endphp
-                <tr class="border-b border-gray-800/50 hover:bg-gray-800/30">
-                    <td class="px-4 py-2 font-semibold">
-                        <x-pair-link :pair="$signal->pair" :interval="$tvInterval" :exchange="$signal->pairScan?->screenerPair?->filters_json['exchange'] ?? 'binance'" :tfData="$signal->pairScan?->screenerPair?->tf_data_json" />
-                    </td>
-                    <td class="px-4 py-2 text-gray-400">
-                        {{ $signal->timeframe }}
-                        <div class="text-gray-600 text-[10px]"><x-timestamp :value="$signal->candle_time" format="M d, g:i A" /></div>
-                    </td>
-                    <td class="px-4 py-2 text-yellow-400">{{ $signal->entry_type }}</td>
-                    <td class="px-4 py-2 text-right text-gray-300">{{ number_format($signal->entry_price, 4) }}</td>
-                    <td class="px-4 py-2 text-right text-red-400">{{ $signal->sl_price ? number_format($signal->sl_price, 4) : '—' }}</td>
-                    <td class="px-4 py-2 text-right text-emerald-400">{{ $signal->tp1_price ? number_format($signal->tp1_price, 4) : '—' }}</td>
-                    <td class="px-4 py-2 text-right text-emerald-300">{{ $signal->tp2_price ? number_format($signal->tp2_price, 4) : '—' }}</td>
-                    <td class="px-4 py-2 text-right text-gray-400">{{ number_format($signal->risk_pct, 2) }}%</td>
-                    <td class="px-4 py-2 text-right text-gray-500">-{{ $signal->candles_ago }}</td>
-                    <td class="px-4 py-2"><x-signal-status :status="$signal->status" /></td>
-                    <td class="px-4 py-2">
-                        <a href="{{ route('signals.show', $signal) }}" class="text-emerald-600 hover:text-emerald-400">detail →</a>
-                    </td>
-                </tr>
-                @empty
-                <tr>
-                    <td colspan="11" class="px-4 py-8 text-center text-gray-600">No signals found</td>
-                </tr>
-                @endforelse
-            </tbody>
-        </table>
-        </div>
+    @if($byDay !== null)
+        {{-- Grouped by day view --}}
+        @forelse($byDay as $date => $daySignals)
+            @php
+                $label = match(true) {
+                    $date === now()->toDateString()           => 'Today',
+                    $date === now()->subDay()->toDateString() => 'Yesterday',
+                    default => \Carbon\Carbon::parse($date)->format('M j, Y'),
+                };
+            @endphp
+            <div class="mb-6">
+                <div class="flex items-center gap-3 mb-2">
+                    <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">{{ $label }}</span>
+                    <span class="text-xs text-gray-600">{{ $daySignals->count() }} signal{{ $daySignals->count() === 1 ? '' : 's' }}</span>
+                    <div class="flex-1 border-t border-gray-800"></div>
+                </div>
+                @include('signals._table', ['signals' => $daySignals])
+            </div>
+        @empty
+            <div class="bg-gray-900 border border-gray-800 rounded-lg px-4 py-8 text-center text-gray-600 text-xs">No signals found</div>
+        @endforelse
+
+    @else
+        {{-- Flat paginated view --}}
+        @include('signals._table', ['signals' => $signals])
         @if($signals->hasPages())
-        <div class="px-4 py-3 border-t border-gray-800">
+        <div class="mt-3 px-1">
             {{ $signals->links() }}
         </div>
         @endif
-    </div>
+    @endif
 
 </x-layouts.app>

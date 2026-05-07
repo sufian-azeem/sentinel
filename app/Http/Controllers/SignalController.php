@@ -28,9 +28,15 @@ class SignalController extends Controller
             $query->where('status', $request->status);
         }
 
-        $signals = $query->paginate(25)->withQueryString();
+        if ($request->boolean('all')) {
+            $signals = $query->paginate(50)->withQueryString();
 
-        return view('signals.index', compact('signals'));
+            return view('signals.index', ['signals' => $signals, 'byDay' => null]);
+        }
+
+        $byDay = $query->get()->groupBy(fn ($s) => $s->candle_time->toDateString());
+
+        return view('signals.index', ['signals' => null, 'byDay' => $byDay]);
     }
 
     public function show(Signal $signal)
