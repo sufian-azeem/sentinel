@@ -43,4 +43,6 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/run', [RunController::class, 'index'])->name('run.index');
     Route::post('/run', [RunController::class, 'store'])->name('run.store');
+
+    Route::get('/pnl-card', fn () => view('pnl-card'))->name('pnl-card');
 });

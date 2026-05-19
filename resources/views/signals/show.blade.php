@@ -425,7 +425,164 @@
 
     </div>
 
+    @if($signal->outcome)
+    @php
+        $pnlPct     = (float) $signal->outcome->pnl_pct;
+        $isWin      = $pnlPct > 0;
+        $pnlColor   = $isWin ? '#34d399' : ($pnlPct < 0 ? '#f87171' : '#9ca3af');
+        $glowColor  = $isWin ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.10)';
+        $badgeBg    = $isWin ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.12)';
+        $badgeBdr   = $isWin ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.25)';
+        $pnlDisplay = ($pnlPct > 0 ? '+' : '') . number_format($pnlPct, 2) . '%';
+    @endphp
+    <div class="mb-6">
+        <div class="flex items-center justify-between mb-3">
+            <h2 class="text-xs font-semibold text-gray-500 uppercase tracking-wider">PNL Card</h2>
+            <div class="flex gap-2">
+                <button onclick="copyPnlCard(this)"
+                        class="text-xs px-3 py-1.5 rounded border border-gray-700 text-gray-400 hover:border-gray-500 hover:text-gray-200 transition-colors">
+                    Copy
+                </button>
+                <button onclick="downloadPnlCard()"
+                        class="text-xs px-3 py-1.5 rounded border border-gray-700 text-gray-400 hover:border-gray-500 hover:text-gray-200 transition-colors">
+                    Download PNG
+                </button>
+            </div>
+        </div>
+        <div class="overflow-x-auto">
+        <div id="pnl-card" style="width:580px;background:#0b0e14;border-radius:16px;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;position:relative;border:1px solid #1a2030;flex-shrink:0;">
+            {{-- Glow --}}
+            <div style="position:absolute;top:-80px;left:-60px;width:340px;height:340px;background:radial-gradient(circle,{{ $glowColor }} 0%,transparent 70%);pointer-events:none;"></div>
+            {{-- Top bar --}}
+            <div style="padding:18px 28px 0;display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:11px;font-weight:700;color:#374151;letter-spacing:0.18em;text-transform:uppercase;">Sentinel</span>
+                <span style="font-size:11px;color:#374151;">{{ $signal->timeframe }} · {{ $signal->candle_time->format('M d, Y') }}</span>
+            </div>
+            {{-- Body --}}
+            <div style="padding:14px 28px 28px;display:flex;align-items:center;justify-content:space-between;gap:16px;">
+                {{-- Left --}}
+                <div style="flex:1;min-width:0;">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+                        <span style="font-size:19px;font-weight:700;color:#e5e7eb;">{{ $signal->pair }}</span>
+                        <span style="font-size:10px;font-weight:700;color:{{ $pnlColor }};background:{{ $badgeBg }};border:1px solid {{ $badgeBdr }};padding:2px 8px;border-radius:4px;text-transform:uppercase;">{{ $signal->entry_type }}</span>
+                    </div>
+                    <div style="font-size:10px;font-weight:600;color:#374151;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:3px;">ROI</div>
+                    <div style="font-size:62px;font-weight:900;color:{{ $pnlColor }};line-height:1;letter-spacing:-2px;margin-bottom:20px;">{{ $pnlDisplay }}</div>
+                    <div style="display:flex;gap:28px;">
+                        <div>
+                            <div style="font-size:10px;font-weight:600;color:#374151;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:4px;">Entry</div>
+                            <div style="font-size:15px;font-weight:600;color:#9ca3af;font-family:'Courier New',monospace;">{{ number_format((float) $signal->entry_price, 4) }}</div>
+                        </div>
+                        <div>
+                            <div style="font-size:10px;font-weight:600;color:#374151;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:4px;">Exit</div>
+                            <div style="font-size:15px;font-weight:600;color:{{ $pnlColor }};font-family:'Courier New',monospace;">{{ $signal->outcome->exit_price ? number_format((float) $signal->outcome->exit_price, 4) : '—' }}</div>
+                        </div>
+                    </div>
+                </div>
+                {{-- Rocket --}}
+                <div style="font-size:108px;line-height:1;flex-shrink:0;opacity:0.88;">🚀</div>
+            </div>
+        </div>
+        </div>
+    </div>
+    @endif
+
     @push('scripts')
+    @if($signal->outcome)
+    <script>
+    function _buildPnlCanvas() {
+        var scale = 2, W = 580, H = 240;
+        var canvas = document.createElement('canvas');
+        canvas.width = W * scale; canvas.height = H * scale;
+        var ctx = canvas.getContext('2d');
+        ctx.scale(scale, scale);
+
+        var pnlPct  = {{ $pnlPct }};
+        var color   = '{{ $pnlColor }}';
+        var pair    = '{{ $signal->pair }}';
+        var dir     = '{{ $signal->entry_type }}';
+        var tf      = '{{ $signal->timeframe }}';
+        var date    = '{{ $signal->candle_time->format("M d, Y") }}';
+        var roi     = '{{ $pnlDisplay }}';
+        var entry   = '{{ number_format((float) $signal->entry_price, 4) }}';
+        var exitP   = '{{ $signal->outcome->exit_price ? number_format((float) $signal->outcome->exit_price, 4) : "—" }}';
+        var glowC   = pnlPct >= 0 ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.10)';
+        var badgeC  = pnlPct >= 0 ? '#10b981' : '#ef4444';
+        var badgeBg = pnlPct >= 0 ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.12)';
+        var badgeBd = pnlPct >= 0 ? 'rgba(16,185,129,0.3)'  : 'rgba(239,68,68,0.25)';
+
+        var sans = '"Segoe UI", -apple-system, BlinkMacSystemFont, Arial, sans-serif';
+        var mono = '"Courier New", Courier, monospace';
+
+        ctx.fillStyle = '#0b0e14';
+        ctx.fillRect(0, 0, W, H);
+
+        var glow = ctx.createRadialGradient(-30, -40, 0, -30, -40, 260);
+        glow.addColorStop(0, glowC); glow.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H);
+
+        ctx.fillStyle = '#374151';
+        ctx.font = '700 11px ' + sans; ctx.letterSpacing = '2px';
+        ctx.fillText('SENTINEL', 28, 29);
+
+        ctx.font = '11px ' + sans; ctx.letterSpacing = '0px';
+        ctx.textAlign = 'right';
+        ctx.fillText(tf + ' · ' + date, W - 28, 29);
+        ctx.textAlign = 'left';
+
+        ctx.fillStyle = '#e5e7eb';
+        ctx.font = '700 19px ' + sans; ctx.letterSpacing = '-0.5px';
+        ctx.fillText(pair, 28, 72);
+        var pairW = ctx.measureText(pair).width;
+
+        ctx.letterSpacing = '0px'; ctx.font = '700 10px ' + sans;
+        var dirW = ctx.measureText(dir).width, bPad = 8, bW = dirW + bPad * 2;
+        var bx = 28 + pairW + 10;
+        ctx.fillStyle = badgeBg;
+        ctx.beginPath(); ctx.roundRect(bx, 59, bW, 16, 3); ctx.fill();
+        ctx.strokeStyle = badgeBd; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.roundRect(bx, 59, bW, 16, 3); ctx.stroke();
+        ctx.fillStyle = badgeC; ctx.fillText(dir, bx + bPad, 70);
+
+        ctx.letterSpacing = '2px'; ctx.fillStyle = '#374151';
+        ctx.font = '600 10px ' + sans; ctx.fillText('ROI', 28, 95);
+
+        ctx.letterSpacing = '-2px'; ctx.fillStyle = color;
+        ctx.font = '900 62px ' + sans; ctx.fillText(roi, 26, 162);
+
+        ctx.letterSpacing = '1.5px'; ctx.fillStyle = '#374151';
+        ctx.font = '600 9px ' + sans;
+        ctx.fillText('ENTRY', 28, 185); ctx.fillText('EXIT', 200, 185);
+
+        ctx.letterSpacing = '0px'; ctx.fillStyle = '#9ca3af';
+        ctx.font = '600 14px ' + mono; ctx.fillText(entry, 28, 205);
+        ctx.fillStyle = color; ctx.fillText(exitP, 200, 205);
+
+        ctx.font = '100px sans-serif'; ctx.fillText('🚀', 445, 192);
+
+        return canvas;
+    }
+    function downloadPnlCard() {
+        var canvas = _buildPnlCanvas();
+        var link = document.createElement('a');
+        link.download = 'pnl-{{ str_replace("/", "-", $signal->pair) }}-{{ $signal->id }}.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+    }
+    function copyPnlCard(btn) {
+        var canvas = _buildPnlCanvas();
+        canvas.toBlob(function(blob) {
+            navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
+                .then(function() {
+                    var orig = btn.textContent;
+                    btn.textContent = 'Copied!';
+                    setTimeout(function() { btn.textContent = orig; }, 2000);
+                })
+                .catch(function() { alert('Copy failed — try downloading instead.'); });
+        }, 'image/png');
+    }
+    </script>
+    @endif
     <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
     <script>
     (function () {
