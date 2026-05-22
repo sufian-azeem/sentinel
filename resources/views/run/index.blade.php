@@ -17,7 +17,7 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start"
          x-data="{
-            exchange: '{{ old('exchange', 'hyperliquid') }}',
+            exchange: '{{ old('exchange', 'mexc') }}',
             defaults: {{ Js::from($exchangeDefaults) }},
             get d() { const r = this.defaults[this.exchange]; return { ...r, min_volume: r.min_volume / 1000 }; },
             fileName: '', dragging: false, advanced: false, loading: false,
