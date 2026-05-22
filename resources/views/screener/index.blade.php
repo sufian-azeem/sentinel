@@ -286,11 +286,11 @@
 
                     {{-- Mini chart --}}
                     @if(!empty($snapshots))
-                    <div class="chart-mini" style="height:220px;"
+                    <div class="chart-mini" style="height:440px;"
                          data-snapshots='@json($snapshots)'
                          data-auto-tf="{{ $autoTf }}"></div>
                     @else
-                    <div style="height:220px;" class="flex items-center justify-center text-gray-700 text-[10px]">no chart data</div>
+                    <div style="height:440px;" class="flex items-center justify-center text-gray-700 text-[10px]">no chart data</div>
                     @endif
 
                     {{-- Card footer --}}
